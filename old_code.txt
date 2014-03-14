@@ -1,0 +1,57 @@
+
+class AtCommands():
+         #never tested
+         
+    def __init__(self, clb):
+        self.callback=clb
+        
+    
+    def cmee(self, uart):
+        self.lock = threading.Lock()        
+        self.callback.append(self.rcvOK)
+        uart.write("AT+CMEE=2")        
+        self.callback.remove(self.rcvOK)
+        #TODO implementare callback per sbloccare
+                
+  #      with self.lock:
+  #          while true:
+   #              self.lock.wait()
+                
+    def rcvOK(self,str):
+        pat = "(OK)"
+        matchObj = (re.match( pat, str, re.M))   
+        if matchObj: 
+            print "PARSED"            
+        else:
+            print "unexpetced answer"
+        self.lock.notifyAll()
+        
+class ImStates():
+    class net_states:
+        NOT_INIT, SIM_DETECTING, SIM_DETECED, CONTEXT_ACTIVATING, CONTEXT_ON, CONTEXT_OFF = range(6)
+    class gps_states:
+        OFF, MPM, ON, FIXING = range(4)
+            
+    def __init__(self):
+        self.net_s = self.net_states.NOT_INIT
+        self.gps_s = self.gps_states.OFF
+        self.cmeErrors=[]
+    
+    def setNetSimDetecting(self):
+        self.net_s = self.net_states.SIM_DETECTING
+        
+    def setNetSimDetected(self):
+        self.net_s = self.net_states.SIM_DETECED
+        
+    def setNetContextActivating(self):
+        self.net_s = self.net_states.CONTEXT_ACTIVATING
+        
+    def setNetContextActivated(self):
+        self.net_s = self.net_states.CONTEXT_ON
+        
+    def setNetContextOn(self,str):
+        self.ip=str        
+        self.net_s = self.net_states.CONTEXT_OFF
+        
+    def cmeErrors(self, str):
+        self.cmeErrors.append(str)
