@@ -4,14 +4,14 @@ Created on Mar 14, 2014
 @author: marco
 '''
 
-class MyClass(object):
-    '''
-    classdocs
-    '''
+ import subprocess
 
 
-    def __init__(self, params):
-        '''
-        Constructor
-        '''
-        
+clientMqtt="immqttclient/immqttclient.jar"
+
+
+def send_locatenow():   
+    p = subprocess.Popen(["ls", "-l", "/etc/resolv.conf"], stdout=subprocess.PIPE, shell=True)
+    (output, err) = p.communicate()
+    print "Today is", output
+    
