@@ -1,6 +1,30 @@
 '''
 Created on Feb 18, 2014
 
+todo:
+- implement all At / firmware errors
+- implements Events on Uart!
+- use packages
+
+- send a command and receive answer in a timeout value
+   - the answer has to be evaluated
+        -in base of the answe, take some actions
+        
+-parse info from the command line
+
+Basic Scenario:
+1) start logging an trace just the errors..
+2) errors has to be counted, have a report of the status (how many connession lost, ...)
+
+3) 
+
+
+Futuristic:
+- gui!
+
+NOT WORKING:
+-write log in file.. (changed uart Observable)
+
 @author: I'm
 '''
 import serial 
@@ -9,6 +33,10 @@ import datetime
 import re
 import threading
 import sys,os
+
+
+UART_COM = "COM8"
+LOG_FOLDER = "logs"
 
 
 class FwCommands():
@@ -37,8 +65,7 @@ class FwCommands():
     @staticmethod
     def gsm(uart,str):
         uart.write("uart"+ " " + str)
-    
-    
+        
     @staticmethod    
     def startFw(uart):
         FwCommands().enable_trace(uart)
@@ -54,42 +81,53 @@ class FwCommands():
         uart.write("gpio 10 0")
         time.sleep(1)
  
+ 
+class Observable():
+    def __init__(self):
+        self.lcallback=[]
+    
+    def subscribe(self, func):
+        self.lcallback.append(func)
+    
+    def fire_action(self, str):
+        for func in self.lcallback:
+            func(str)
           
 
-class Events():
-    @staticmethod       
-    def cmeError(str):
+class Events(Observable):            
+           
+    def cmeError(self, str):
         pat = "(\+CME ERROR:) (.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            print "FOUND " +str
-    @staticmethod     
-    def hostEEFiles(str):
+            self.fire_action(str)
+         
+    def hostEEFiles(self, str):
         pat = "(\+SIFIXEV: Host EE Files Successfully Created)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            print "FOUND!!!!!!!! " +str
-    @staticmethod     
-    def gpsacp(str):
+            self.fire_action(str)
+         
+    def gpsacp(self, str):
         pat = "(AT\$GPSACP)(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            print "FOUND!!!!!!!! " +str
-    @staticmethod     
-    def gpssw(str):
+            self.fire_action(str)
+         
+    def gpssw(self, str):
         pat = "(AT\$GPSSW)(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            print "FOUND!!!!!!!! " +str
-    @staticmethod
-    def sgact(str):
+            self.fire_action(str)
+    
+    def sgact(self, str):
         pat = "(\#SGACT)(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            print "FOUND!!!!!!!! " +str
+            self.fire_action(str)
                 
-    @staticmethod        
-    def parse(str):
+            
+    def parse(self, str):
         Events().hostEEFiles(str)
         Events().cmeError(str)
         Events().gpsacp(str)
@@ -105,24 +143,41 @@ class LogFile():
         sys.stdout.write(str)
         sys.stdout.flush()
     
-    def __init__(self, time):
-        location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))  
+    def __init__(self, time):        
         self.time = time      
-        self.logfile  = open(os.path.join(location, 'log.log'), 'w')            
+                
+        location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        location = location +  "/" + LOG_FOLDER
+        if not os.path.exists(location):
+            os.makedirs(location)  
+        
+        #open lof file
+        self.logfile  = open(os.path.join(location, 'log_' + datetime.datetime.now().strftime("%H_%M_%S_%f")  +'.txt'), 'w')            
         self.logfile.write("\n")
         self.logfile.flush()
+        
+        #open error file
+        self.logErrfile  = open(os.path.join(location, 'logError_' + datetime.datetime.now().strftime("%H_%M_%S_%f")  +'.txt'), 'w')            
+        self.logErrfile.write("\n")
+        self.logErrfile.flush()
      
     def writeLog(self,str):
         #append in teh log file                              
         self.logfile.write(self.time() + " " + str + "\n")
         self.logfile.flush()
+        
+    def writeErrLog(self,str):
+        #append in teh log file                              
+        self.logErrfile.write(self.time() + " " + str + "\n")
+        self.logErrfile.flush()
       
     def closeLog(self):
         #close the log file
         self.logfile.close()
+        self.logErrfile.close()
 
 
-class Uart(threading.Thread):
+class Uart(threading.Thread, Observable):
     
     def open_ser(self):
         try:
@@ -133,17 +188,12 @@ class Uart(threading.Thread):
      
     def close_ser(self):
         self.serial_ref.close()
+        #TODO: stop the THREAD
         
-    def __init__(self, lcallback=[], session="ses1", port="COM8"):
+    def __init__(self, port=UART_COM):
+        Observable.__init__(self)
         threading.Thread.__init__(self)        
-        self.uart_port=port
-        self.session=session
-        self.lcallback=lcallback
-       
-    
-    def process(self,str):
-        for func in self.lcallback:
-            func(str)
+        self.uart_port=port            
     
     def write(self,str):
         try:
@@ -165,7 +215,7 @@ class Uart(threading.Thread):
         self.open_ser()
         while True:        
             rcv = self.readlineCR()            
-            self.process(rcv)
+            self.fire_action(rcv)
 
 
 class SessionManager:
@@ -177,29 +227,27 @@ class SessionManager:
     def updTime(self, str):
         self.datenow = datetime.datetime.now().strftime("%H:%M:%S.%f")
         
-    def initSession(self, num_loops=3):
-        self.start_session=datetime.datetime.now()
-        self.num_loops=num_loops
-                
-        
+    def initSession(self):                                
         self.datenow = datetime.datetime.now().strftime("%H:%M:%S.%f") 
-                    
+        #cerates logfile and logErrorfile            
         self.logFile = LogFile(self.getTime)   
         
-        self.callbacks=[]
-        self.callbacks.append(self.updTime)                
-        self.callbacks.append(self.logFile.printConsole)
-        self.callbacks.append(self.logFile.writeLog)
-        self.callbacks.append(Events.parse)              
-                        
-        self.uart = Uart(self.callbacks)        
-        
-       # self.atc = AtCommands(self.uart)
+        self.uart = Uart()            
+        self.uart.subscribe(self.updTime)                
+        self.uart.subscribe(self.logFile.printConsole)
+        self.uart.subscribe(self.logFile.writeLog)
+       # self.uart.subscribe(Events.parse)                                      
+                   
+       #start the uart thread 
         self.uart.start()
         
+                
+    def closeSession(self):
+        self.uart.close_ser()
+        self.logFile.closeLog()
         
-    
-    def logSession(self):
+            
+    def startLogSession(self):
         #just switch on the device and log all the errors        
         FwCommands().startFw(self.uart)
         FwCommands().switchon(self.uart)
