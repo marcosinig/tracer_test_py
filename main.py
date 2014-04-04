@@ -15,7 +15,7 @@ class FwCommands():
             
     @staticmethod
     def enable_trace(uart):
-        uart.write("trace" + " 1")
+        uart.write("trace" + " 2")
     @staticmethod
     def disable_trace(uart):
         uart.write("trace" + " 0")                        
@@ -37,6 +37,7 @@ class FwCommands():
     @staticmethod
     def gsm(uart,str):
         uart.write("uart"+ " " + str)
+    
     
     @staticmethod    
     def startFw(uart):
@@ -100,6 +101,7 @@ class Events():
 class LogFile():
     @staticmethod    
     def printConsole(str):
+        #print in the shell
         sys.stdout.write(str)
         sys.stdout.flush()
     
@@ -110,11 +112,13 @@ class LogFile():
         self.logfile.write("\n")
         self.logfile.flush()
      
-    def writeLog(self,str):                              
+    def writeLog(self,str):
+        #append in teh log file                              
         self.logfile.write(self.time() + " " + str + "\n")
         self.logfile.flush()
       
     def closeLog(self):
+        #close the log file
         self.logfile.close()
 
 
@@ -122,7 +126,7 @@ class Uart(threading.Thread):
     
     def open_ser(self):
         try:
-            self.serial_ref = serial.Serial("/dev/"+ self.uart_port , baudrate=115200)
+            self.serial_ref = serial.Serial(self.uart_port , baudrate=115200)
         except:
             print "Error on opening port "+ self.uart_port 
             self.serial_ref.close()
@@ -130,7 +134,7 @@ class Uart(threading.Thread):
     def close_ser(self):
         self.serial_ref.close()
         
-    def __init__(self, lcallback=[], session="ses1", port="ttyACM0"):
+    def __init__(self, lcallback=[], session="ses1", port="COM8"):
         threading.Thread.__init__(self)        
         self.uart_port=port
         self.session=session
@@ -190,14 +194,15 @@ class SessionManager:
                         
         self.uart = Uart(self.callbacks)        
         
-        self.atc = AtCommands(self.uart)
+       # self.atc = AtCommands(self.uart)
         self.uart.start()
         
         
     
-    def startSession(self):        
+    def logSession(self):
+        #just switch on the device and log all the errors        
         FwCommands().startFw(self.uart)
-        #TODO init timeout per end loop
+        FwCommands().switchon(self.uart)
 
        
 
