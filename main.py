@@ -34,67 +34,27 @@ NOT WORKING:
 
 
 import datetime
-import re
 
-from utils import *
-from commands import *
+
+from imUtils import *
+from imCommands import *
 
 UART_COM = "COM8"
-LOG_FOLDER = "logs"
-           
+LOG_FOLDER = "logs"         
 
-class Events(Observable):            
-           
-    def cmeError(self, str):
-        pat = "(\+CME ERROR:) (.*)"
-        matchObj = (re.match( pat, str, re.M)) 
-        if matchObj: 
-            self.fire_action(str)
-         
-    def hostEEFiles(self, str):
-        pat = "(\+SIFIXEV: Host EE Files Successfully Created)"
-        matchObj = (re.match( pat, str, re.M)) 
-        if matchObj: 
-            self.fire_action(str)
-         
-    def gpsacp(self, str):
-        pat = "(AT\$GPSACP)(.*)"
-        matchObj = (re.match( pat, str, re.M)) 
-        if matchObj: 
-            self.fire_action(str)
-         
-    def gpssw(self, str):
-        pat = "(AT\$GPSSW)(.*)"
-        matchObj = (re.match( pat, str, re.M)) 
-        if matchObj: 
-            self.fire_action(str)
-    
-    def sgact(self, str):
-        pat = "(\#SGACT)(.*)"
-        matchObj = (re.match( pat, str, re.M)) 
-        if matchObj: 
-            self.fire_action(str)
-                
-            
-    def parse(self, str):
-        Events().hostEEFiles(str)
-        Events().cmeError(str)
-        Events().gpsacp(str)
-        Events().gpssw(str)
-        Events().sgact(str)
+     
         
-        
-class SessionManager:
+class SessionManager(object):
      def __init__(self):
         self.time = myTime()
         #cerates logfile and logErrorfile            
         self.logFile = LogFile(LOG_FOLDER, self.time)   
         
 
-class sUartM(SessionManager):
+class UartM(SessionManager):
 
     def __init__(self):    
-        super(sUartM, self).__init__()                                                    
+        super(self.__class__, self).__init__()                                               
         self._uart = Uart(UART_COM)            
         self._uart.subscribe(self.time.updTime)                
         self._uart.subscribe(self.logFile.printConsole)
@@ -103,16 +63,47 @@ class sUartM(SessionManager):
         
         self.fwc= FwCommands(self._uart)                 
        #start the uart thread 
-        self._uart.start()        
+       
+    def start(self):
+        self._uart.start()
                 
-    def closeSession(self):
+    def close(self):
         self._uart.close_ser()
         self.logFile.closeLog()
-        
-            
 
-def startLogSession(self):
+class LogFileM(SessionManager):    
+
+    def __init__(self):    
+        super(self.__class__, self).__init__()
+        self._file = logFile()           
+        self._events = Events()
+        self._stats  = Statistics()
+        
+        self._events.subscribe(self._stats.parse)
+         
+        #self._file.subscribe(self.time.updTime)                
+        self._file.subscribe(self.logFile.printConsole)
+        self._file.subscribe(self.logFile.writeLog)
+        self._file.subscribe(self._events.parse)                                      
+                        
+    def start(self, fileName):
+        self._file.open(fileName)
+        self._file.start()
+                                
+    def closeSession(self):        
+        self.logFile.closeLog()                    
+
+def startUartLog():
         #just switch on the device and log all the errors 
-        s = sUartM()        
+        s = UartM()        
         s.fwc.startFw()
         s.fwc.switchon()
+        
+def startLogFile():
+    tera = "C:\\Users\\i'm Developer\\Documents\\teraterm_small.log"
+    
+    s = LogFileM()
+    s.start(tera)
+    
+if __name__ == "__main__":
+    startLogFile()
