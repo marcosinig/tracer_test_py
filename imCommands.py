@@ -8,10 +8,7 @@ import time
 import re
 import sys
 
-import imUtils
-
-def function_name():
-    return sys._getframe().f_back.f_code.co_name
+from imUtils import *
 
 class FwCommands():
 
@@ -56,66 +53,65 @@ class FwCommands():
         time.sleep(1)
         
 
-class Events(imUtils.Observable):
+class EventMsg():
+    def __init__(self, line, event, str1=""):
+        self.line=line
+        self.event=event
+        self.str1 = str1
+        
+
+class Events(Observable, Parseble):
     """
     todo: 
     
-    """            
-           
+    """
+    
+    def __init__(self):
+        super(self.__class__, self).__init__()
+                    
     def cmeError(self, str):
         pat = "(.*) (\+CME ERROR:) (.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            self.fire_action(str, function_name())
+            self.fire_action(EventMsg(str, function_name()))            
          
     def hostEEFiles(self, str):
         pat = "(\+SIFIXEV: Host EE Files Successfully Created)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            self.fire_action(str, function_name())
+            self.fire_action(EventMsg(str, function_name()))
          
     def gpsacp(self, str):
         pat = "(AT\$GPSACP)(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            self.fire_action(str, function_name())
+            self.fire_action(EventMsg(str, function_name()))
          
     def gpssw(self, str):
         pat = "(AT\$GPSSW)(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            self.fire_action(str, function_name())
+            self.fire_action(EventMsg(str, function_name()))
     
     def sgact(self, str):
         pat = "(\#SGACT)(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            self.fire_action(str, function_name())
+            self.fire_action(EventMsg(str, function_name()))
                 
     def fwSwitchOn(self, str):
-        pat = "(.*)(SYS user on)(.*)"
+        if "SYS user on" in str:
+            self.fire_action(EventMsg(str, function_name()))
+    
+    def iccid(self, str):
+        pat = "(\#CCID: )(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            self.fire_action(str, function_name())      
+            self.fire_action(EventMsg(str, function_name(), matchObj.group(2)))
                 
-            
-    def parse(self, str):
-        self.hostEEFiles(str)
-        self.cmeError(str)
-        self.gpsacp(str)
-        self.gpssw(str)
-        self.sgact(str)
-        self.fwSwitchOn(str)
+
     
-    
-class Statistics():
-    
-    def fwSwitchOn(self, str, str2):
-        if str2 in function_name():
-            self.fwSwitchOn += 1
-    
-    def parse(self, str, str2):
-        self.parse(str, str2)
+
         
             
  

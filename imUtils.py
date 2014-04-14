@@ -1,4 +1,4 @@
-'''
+'''s
 Created on 7 Apr 2014
 
 @author: marco
@@ -16,10 +16,26 @@ class Observable(object):
     def subscribe(self, func):
         self.lcallback.append(func)
     
-    def fire_action(self, str, str2=""):
+    def fire_action(self, obj):
         for func in self.lcallback:
-            func(str, str2)
+            func(obj)
 
+class Parseble(object):
+       
+    def parseAll(self, obj):
+        for name, method in self.__class__.__dict__.iteritems():
+            if callable(method) and name != "__init__" and name != "__module__" and name != "__doc__" and name != "parseAll":                
+                method(self,obj)
+    
+    def parsebyFunc(self, obj):
+        for name, method in self.__class__.__dict__.iteritems():
+            if name == obj.event:
+                method(self,obj)
+            
+        
+
+def function_name():
+    return sys._getframe().f_back.f_code.co_name
 
 class Uart(threading.Thread, Observable):
     
@@ -33,11 +49,11 @@ class Uart(threading.Thread, Observable):
      
     def close_ser(self):
         self.serial_ref.close()
-        #TODO: stop the THREAD
+        #TODO: stop the THREAD 
         
     def __init__(self, port):
-        super(Uart,self).__init__(self)
-        threading.Thread.__init__(self)        
+        super(self.__class__, self).__init__()
+        #threading.Thread.__init__(self)        
         self.uart_port=port            
     
     def write(self,str):

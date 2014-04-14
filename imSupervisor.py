@@ -5,26 +5,24 @@ Created on 14/apr/2014
 '''
 
 from imUtils  import *
+from imCommands import *
 
-class Statistics():
+
+class Statistics(Parseble):
     __log=1
     
     def __init__(self):
+        super(self.__class__, self).__init__()
         self._fwSwitchesOn=0
     
-    def _fwSwitchOn(self, str, str2):
-        if str2 in function_name():            
+    def fwSwitchOn(self, evt):
+        if (Statistics.__log):
+            print "fwSwitchOn"
             
-            if (Statistics.__log==1):
-                print "fwSwitchOn"
-            
-    def _fwReconnect(self, str, str2):
-        if str2 in function_name():            
-            
-            if (Statistics.__log==1):
-                print "fwReconnect"
-            
-    
-    def parse(self, str, str2):
-        self._fwSwitchOn(str, str2)
-        self._fwReconnect(str, str2)
+    def fwReconnect(self, evt):
+        if (Statistics.__log):
+            print "fwReconnect"
+
+    def iccid(self, evt):            
+        if (Statistics.__log):
+            print "iccid " + evt.str1            

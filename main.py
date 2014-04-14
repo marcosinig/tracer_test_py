@@ -38,6 +38,7 @@ import datetime
 
 from imUtils import *
 from imCommands import *
+from imSupervisor import *
 
 UART_COM = "COM8"
 LOG_FOLDER = "logs"         
@@ -79,12 +80,12 @@ class LogFileM(SessionManager):
         self._events = Events()
         self._stats  = Statistics()
         
-        self._events.subscribe(self._stats.parse)
+        self._events.subscribe(self._stats.parsebyFunc)
          
         #self._file.subscribe(self.time.updTime)                
-        self._file.subscribe(self.logFile.printConsole)
+        #self._file.subscribe(self.logFile.printConsole)
         self._file.subscribe(self.logFile.writeLog)
-        self._file.subscribe(self._events.parse)                                      
+        self._file.subscribe(self._events.parseAll)                                      
                         
     def start(self, fileName):
         self._file.open(fileName)
@@ -100,10 +101,12 @@ def startUartLog():
         s.fwc.switchon()
         
 def startLogFile():
-    tera = "C:\\Users\\i'm Developer\\Documents\\teraterm_small.log"
+    location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
+    logFile = location + "\\fw_logs\\log_13_03_multiple_send.txt"
     
     s = LogFileM()
-    s.start(tera)
+    s.start(logFile)
     
 if __name__ == "__main__":
     startLogFile()
