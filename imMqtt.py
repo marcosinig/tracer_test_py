@@ -33,17 +33,74 @@ class MqtMsgEvent():
         return copy.deepcopy(self)
 
 class MqttMsgHello(MqtMsgEvent):
+    """
+    'HELLO;1.0;1404141730;0;0;Y;N;10.00.008-B021
+    """
+    def parse(self,str):
+        list = str.split(';')
+        self.hwV = list[1]
+        self.fwV = list[2]
+        self.commDur = list[3]
+        self.maxCommDur = list[4]
+        self.still = list[5]
+        self.lowBatt = list[6]
+        self.telitV = list[7]
     
-     #def __init__(self, father):
-         #if father != None:
-         #    super(self.__class__, self).__init__(father.iccid, father.topic, father.payload)
-           
-              
-     def set(self, oo, xx):
-        self.oo=oo
-        self.xx=xx
-        
+class MqttMsgPosition(MqtMsgEvent):
+    """
+    00;LN;140414204440;+44.58810;+11.27290;1;-47;2;3;2.20;0;222;10;+33;Y        
+    """
+    def parse(self,str):
+        list = str.split(';')
+        self.msgV = list[0]
+        self.msgT = list[1]
+        self.timestamp = list[2]
+        self.latitude = list[3]
+        self.longitude = list[4]
+        self.fixStatus = list[5]
+        self.altitude = list[6]
+        self.charge = list[7]
+        self.signal = list[8]
+        self.hdop = list[9]
+        self.timefix = list[10]
+        self.country = list[11]
+        self.network = list[12]
+        self.temperature = list[13]
+        self.online = list[14]
+    
+class MqttMsgSetting(MqtMsgEvent):
+    """
+    US;140305162623;900;Y;N;N;Y;N;40;N;5;5;0;S/89372021131119023831/0660d2d9-9acd-4d57-b9bc-0bff0e4cd707
+    """
+    def parse(self,str):
+        list = str.split(';')
+        self.timestamp = list[1]
+        self.periodFix = list[2]
+        self.powerSaving = list[3]
+        self.parentalLock = list[4]
+        self.sosDenial = list[4]
+        self.fallNotification = list[5]
+        self.debugLevel = list[6]
+        self.ackTopic = list[7]
 
+class MqttMsgLocateNow(MqtMsgEvent):
+    pass
+
+class MqttMsgContinuosTracking(MqtMsgEvent):
+    pass
+
+class MqttMsgNewFirmware(MqtMsgEvent):
+    pass
+
+
+class MqttMsgGoodBye(MqtMsgEvent):
+    """
+    'GOODBYE WILL'      
+    """
+    def parse(self,str):
+        pass
+  
+    
 
 class MqttMsgCallTmp():
     """
@@ -68,7 +125,9 @@ class MqttMsgCallTmp():
             self._goodbye(msg)
 
 class MqttCallbck(MqttMsgCallTmp):
-    
+    """
+    Implementation of the CallBack Template 
+    """  
     def hello(self, mqtMsgEvent):
         super(self.__class__, self)._hello(mqtMsgEvent)
     
@@ -93,7 +152,8 @@ class MosServerTest():
 class MosqAdapter(threading.Thread): 
     __log=1
     __debugMqtt=0
- 
+    __username="imcloud"
+    __password="hg3686g9FWn102a"
  
     def __init__(self, mosServer, iccid, callback=None):
         super(self.__class__, self).__init__()
@@ -137,10 +197,10 @@ class MosqAdapter(threading.Thread):
         if MosqAdapter.__debugMqtt :
             self._mqttc.on_log = self.on_log
         
-        self._mqttc.will_set("D/S/", "GOODBYE WILL", 2)
         
-        
-        self._mqttc.username_pw_set("imcloud","hg3686g9FWn102a")
+        #self._mqttc.will_set("D/S/", "GOODBYE WILL", 2)
+            
+        self._mqttc.username_pw_set(MosqAdapter.__username,MosqAdapter.__password)
         
         location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         location = location +  "\\immqttclient\\client-ca.crt"
