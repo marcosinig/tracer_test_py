@@ -33,7 +33,13 @@ class MqtMsgEvent():
         return copy.deepcopy(self)
 
 class MqttMsgHello(MqtMsgEvent):
-    def set(self, oo, xx):
+    
+     #def __init__(self, father):
+         #if father != None:
+         #    super(self.__class__, self).__init__(father.iccid, father.topic, father.payload)
+           
+              
+     def set(self, oo, xx):
         self.oo=oo
         self.xx=xx
         
@@ -200,11 +206,11 @@ def testParseHello():
 def testEvent():
     m = MqtMsgEvent("iccid", "topic", "payload")
     
-    hello = MqttMsgHello()
-    hello = m.copy()
-    hello.set("oo","xx")
+    #downcast
+    m.__class__= MqttMsgHello        
     
-    hello.__dict__
+    m.set("oo","xx")    
+    print m.oo
     
     
 if __name__ == "__main__":
