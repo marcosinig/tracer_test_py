@@ -103,7 +103,7 @@ class Events(Observable, Parseble):
         if "SYS user on" in str:
             self.fire_action(EventMsg(str, function_name()))
     
-    def iccid(self, str):
+    def _iccid(self, str):
         pat = "(\#CCID: )(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
