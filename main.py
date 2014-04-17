@@ -39,6 +39,7 @@ import datetime
 from imUtils import *
 from imCommands import *
 from imSupervisor import *
+from imMqtt import *
 
 UART_COM = "COM8"
 LOG_FOLDER = "logs"         
@@ -57,10 +58,10 @@ class UartM(SessionManager):
     def __init__(self):    
         super(self.__class__, self).__init__()                                               
         self._uart = Uart(UART_COM)            
-        self._uart.subscribe(self.time.updTime)                
-        self._uart.subscribe(self.ReadLogFile.printConsole)
-        self._uart.subscribe(self.ReadLogFile.writeLog)
-       # self.uart.subscribe(ShellEvents.parse)                                      
+        self._uart.msubscribe(self.time.updTime)                
+        self._uart.msubscribe(self.ReadLogFile.printConsole)
+        self._uart.msubscribe(self.ReadLogFile.writeLog)
+       # self.uart.msubscribe(ShellEvents.parse)                                      
         
         self.fwc= FwCommands(self._uart)                 
        #start the uart thread 
@@ -80,13 +81,13 @@ class LogFileM(SessionManager):
         self._events = ShellEvents()
         self._stats  = Statistics()
                 
-        self._events.subscribe(self._stats.parsebyFunc)
+        self._events.msubscribe(self._stats.callMatchFuncName)
          
-        #self._file.subscribe(self.time.updTime)                
-        #self._file.subscribe(self.ReadLogFile.printConsole)
-        self._file.subscribe(self.ReadLogFile.writeLog)
+        #self._file.msubscribe(self.time.updTime)                
+        #self._file.msubscribe(self.ReadLogFile.printConsole)
+        self._file.msubscribe(self.ReadLogFile.writeLog)
         
-        self._file.subscribe(self._events.parseAll)                                      
+        self._file.msubscribe(self._events.callAllFunc)                                      
                         
     def start(self, fileName):
         self._file.open(fileName)

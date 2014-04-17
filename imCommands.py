@@ -86,14 +86,12 @@ class ShellEvents(Observable, Parseble):
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
             self.fire_action(EventMsg(str, function_name()))
-         
-    def gpssw(self, str):
-        pat = "(AT\$GPSSW)(.*)"
-        matchObj = (re.match( pat, str, re.M)) 
-        if matchObj: 
+    
+    def sgactQuery(self, str):
+        if "AT#SGACT" in str:
             self.fire_action(EventMsg(str, function_name()))
     
-    def sgact(self, str):
+    def sgactAns(self, str):
         pat = "(\#SGACT)(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
@@ -103,7 +101,12 @@ class ShellEvents(Observable, Parseble):
         if "SYS user on" in str:
             self.fire_action(EventMsg(str, function_name()))
     
-    def iccid(self, str):
+    def fwSwitchOff(self, str):
+        if "SYS user off" in str:
+            self.fire_action(EventMsg(str, function_name()))
+    
+    
+    def getIccid(self, str):
         pat = "(\#CCID: )(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 

@@ -9,6 +9,10 @@ from imCommands import *
 
 
 class Statistics(Parseble):
+    """
+    function names are called in base of shell and mqtt events
+    
+    """
     __log=1
     
     def __init__(self):
@@ -23,9 +27,66 @@ class Statistics(Parseble):
         if (Statistics.__log):
             print "fwReconnect"
 
-    def iccid(self, evt):            
+    def getIccid(self, evt):            
         if (Statistics.__log):
-            print "iccid " + evt.str1            
+            print "iccid " + evt.str1 
+    
+    def mqttHello(self, mqtMsgEvent):
+        #action to be difened..!
+        print "TestMqttEvents Hello"  
+        
+        
+    def sgactFailed(self, mqtMsgEvent):
+        #toimplement call
+        
+        #increment failed activation
+        
+        pass
+    
+    def sgactSessionFailed(self):
+        #toimplement call
+        
+        #print into log
+        
+        #increment counter failed sessions
+        pass
+
+        
+    def sgactAns(self, mqtMsgEvent): 
+        #print in log file
+        
+        #save      
+        pass   
+    
+    def sslErrors(self):
+        #toimplement call
+        
+         #increment counter
+         pass
+
+    def cmeErrors(self):
+         
+         #increment counter
+         
+         pass
+     
+    def noCarrier(self):
+         
+         #increment counter
+         
+         pass
+     
+    def fwReconnection(self):
+         #toimplement call (only first time)
+         pass
+     
+     
+    def StatEndSession(self):
+        #has to be called everytime the session expire
+        
+        #print total duration of session
+        
+        pass
 
 
 

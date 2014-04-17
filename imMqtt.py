@@ -28,9 +28,6 @@ class MqtMsgEvent():
         self.topic = topic
         self.payload = payload
     
-    #def copy(self):
-    #    return copy.deepcopy(self)
-    
     def __str__(self):
         return "iccid=" + self.iccid + "topic=" + self.topic + "payload=" + self.payload
 
@@ -47,6 +44,7 @@ class MqttMsgHello(MqtMsgEvent):
         self.still = list[5]
         self.lowBatt = list[6]
         self.telitV = list[7]
+        self.event="mqttHello"
     
     def __str__(self):
         return "hwV=" + self.hwV + " fwV=" + self.fwV + "commDur=" + self.commDur + "maxCommDur=" + self.maxCommDur + "still=" +self.still + "lowBatt=" + self.lowBatt + "telitV=" + self.telitV
@@ -72,6 +70,7 @@ class MqttMsgPosition(MqtMsgEvent):
         self.network = list[12]
         self.temperature = list[13]
         self.online = list[14]
+        self.event="mqttPosotion"
         
     def __str__(self):
         #TODO
@@ -91,6 +90,7 @@ class MqttMsgSetting(MqtMsgEvent):
         self.fallNotification = list[5]
         self.debugLevel = list[6]
         self.ackTopic = list[7]
+        self.event="mqttSetting"
     
     def __str__(self):
         #TODO
@@ -114,15 +114,12 @@ class MqttMsgGoodBye(MqtMsgEvent):
     'GOODBYE WILL'      
     """
     def parse(self,str):
-        pass
+        self.event="mqttGoodbye"
+        
   
-    
-
-class MqttMsgCallTmp():
+class MqttMsgEvents():
     """
-    CallBack Template 
-    It is called when a msg in all the subscriptions topics is received
-    Parse of the message is automatically performed
+    
     """   
     __log=1
      
@@ -145,21 +142,22 @@ class MqttMsgCallTmp():
             self._goodbye(msg)
 
 
-class MqttCallbck():
+class TestMqttEvents(Parseble):
     """
     Implementation of the CallBack Template 
     """  
-    def hello(self, mqtMsgEvent):
-        super(self.__class__, self)._hello(mqtMsgEvent)
+    def mqttHello(self, mqtMsgEvent):
         #action to be difened..!
-        print "MqttCallbck Hello"
+        print "TestMqttEvents Hello"
     
-    def goodbye(self, mqtMsgEvent):
-        super(self.__class__, self)._hello(mqtMsgEvent)
+    def mqttGoodbye(self, mqtMsgEvent):
         #action to be difened..!
+        print "goodbye"
 
 
 class MqttEvents(Observable, Parseble):
+    __log=1
+    
     def __init__(self):
         super(self.__class__, self).__init__()
     
@@ -169,6 +167,7 @@ class MqttEvents(Observable, Parseble):
                print(self.__class__.__name__ + " Log: " + function_name())
            mqtMsgEvent.__class__= MqttMsgHello
            mqtMsgEvent.parse()
+           self.fire_action(mqtMsgEvent)
        
     def goodbye(self, mqtMsgEvent):
         if "GOODBYE WILL" in mqtMsgEvent.payload:
@@ -203,31 +202,31 @@ class MosqAdapter(threading.Thread, Observable):
         self._msgClb=callback
  
     def on_connect(self, mosq, obj, rc):
-        #mosq.subscribe("$SYS/#", 0)
+        #mosq.msubscribe("$SYS/#", 0)
         if MosqAdapter.__log:
-            print(self.__class__ + " Log: on_connect rc: "+str(rc))
+            print(self.__class__.__name__ + " Log: on_connect rc: "+str(rc))
     
     def on_message(self, mosq, obj, msg):
         if MosqAdapter.__log:
-            print(self.__class__ + " Log: Received msg " + msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
-        #if self._msgClb is not None:            
-        #    self._msgClb.msgClb(MqtMsgEvent(self.iccid, msg.topic, msg.payload))
-        self.fire_action(MqtMsgEvent(self.iccid, msg.topic, msg.payload))
+            print(self.__class__.__name__  + " Log: Received msg " + msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
+        if self._msgClb is not None:            
+            self._msgClb(MqtMsgEvent(self.iccid, msg.topic, msg.payload))
+        #self.fire_action(MqtMsgEvent(self.iccid, msg.topic, msg.payload))
     
     def on_publish(self, mosq, obj, mid):
         if MosqAdapter.__log:
-            print(self.__class__ + " Log: on_publish mid: "+str(mid))
+            print(self.__class__.__name__  + " Log: on_publish mid: "+str(mid))
     
     def on_subscribe(self, mosq, obj, mid, granted_qos):
         if MosqAdapter.__log:
-            print(self.__class__ + "Log: Subscribed: "+str(mid)+" "+str(granted_qos))
+            print(self.__class__.__name__  + "Log: Subscribed: "+str(mid)+" "+str(granted_qos))
     
     def on_log(self, mosq, obj, level, string):        
-            print(self.__class__ + " Log: "+ string)
+            print(self.__class__.__name__  + " Log: "+ string)
     
     def on_disconnect(self, mosq, userdata, rc):
         if MosqAdapter.__log:
-            print(self.__class__ + " Log: disconnect: ", rc)
+            print(self.__class__.__name__  + " Log: disconnect: ", rc)
     
     def open(self):
         self._mqttc = mosquitto.Mosquitto("MARCO-TEST")
@@ -245,7 +244,7 @@ class MosqAdapter(threading.Thread, Observable):
         self._mqttc.username_pw_set(MosqAdapter.__username,MosqAdapter.__password)
         
         location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-        location = location +  "\\immqttclient\\client-ca.crt"
+        location = location +  "//immqttclient//client-ca.crt"
         
         if not os.path.exists(location):
             print("CA certificate does not exists " + location)
@@ -259,7 +258,7 @@ class MosqAdapter(threading.Thread, Observable):
     def run(self):
         self._mqttc.loop_forever()
         
-    def subscribe(self):
+    def msubscribe(self):
         ans = self._mqttc.subscribe("C/" + self.iccid)
         print "Subscribe  ", ans[1:2]
         ans = self._mqttc.subscribe("S/" + self.iccid)
@@ -285,63 +284,55 @@ def testSubscription():
     m = MosqAdapter(MqttServer1(),ICCID)
     m.open()
     m.start()
-    m.subscribe()
+    m.msubscribe()
     m.pubHello()
     m.pubPosition()
    
 def testParseHello():
     ICCID="89372021131217026926"
-    msgAct = MqttMsgCallTmp()
+    msgAct = MqttMsgEvents()
     m = MosqAdapter(MqttServer1(), ICCID, msgAct)
     m.open()
     m.start()
     #TODO: should wait for oprn confirm
     time.sleep(1)    
-    m.subscribe()
+    m.msubscribe()
     #TODO: should wait for sub confirm
     time.sleep(1)
     m.pubHello()
     time.sleep(1)
     m.disconnect()
-    time.sleep(1)
 
-def testDownCasting():
-    m = MqtMsgEvent("iccid", "topic", "payload")    
-    #downcast
-    m.__class__= MqttMsgHello        
+def mqttInit(iccid, eventCallbck):
+    ev = MqttEvents()
+    m = MosqAdapter(MqttServer1(),iccid, ev.callAllFunc)
+
+    ev.msubscribe(eventCallbck.callMatchFuncName)
     
-    m.set("oo","xx")    
-    print m.oo
+    m.open()
+    m.start()
+    time.sleep(1)    
+    m.msubscribe()
     
-def testParseHelloTemplate():
-     m = MqtMsgEvent("iccid", "topic", "HELLO;1.0;1404141730;0;0;Y;N;10.00.008-B021")    
-     mTmp = MqttMsgCallTmp()
-     mTmp.msgClb(m)
-    #m is now of type MqttMsgHello
-     print str(m)
- 
-def testParseCll():
-     #messagio da parsare
-     m = MqtMsgEvent("iccid", "topic", "HELLO;1.0;1404141730;0;0;Y;N;10.00.008-B021")
-     #handler che definisce le azioni per il messaggio    
-     mTmp = MqttCallbck()
-     #parse the message
-     mTmp.msgClb(m)
-    #m is now of type MqttMsgHello
-     print str(m)   
-    
+       
     
 def testEvents():
     ICCID="89372021131217026926"
-    m = MosqAdapter(MqttServer1(),ICCID)
+    
     ev = MqttEvents()
-    callbck = MqttCallbck()
+    m = MosqAdapter(MqttServer1(),ICCID, ev.callAllFunc)
     
-    ev.subscribe(callbck.parsebyFunc)
+    callbck = TestMqttEvents()
+
+    ev.msubscribe(callbck.callMatchFuncName)
     
-    m.subscribe(ev.parseAll())
+    m.open()
+    m.start()
+    time.sleep(1)    
+    m.msubscribe()
+    m.pubHello()
     
 if __name__ == "__main__":
-    testParseCll()
+    testEvents()
         
     

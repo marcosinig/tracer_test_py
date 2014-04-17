@@ -11,13 +11,13 @@ import sys,os
 
 class Observable(object):
     """
-    Objects that want to be notified have to register (subscribe) the entry point function
+    Objects that want to be notified have to register (msubscribe) the entry point function
     The Class that heredits, has to call fire_action and all the subsribers (entry point function) will be called
     """
     def __init__(self):
         self.lcallback=[]
     
-    def subscribe(self, func):
+    def msubscribe(self, func):
         self.lcallback.append(func)
     
     def fire_action(self, obj):
@@ -30,23 +30,22 @@ class Parseble(object):
     chiama le funzioni della classe che eredita 
     """
        
-    def parseAll(self, obj):
+    def callAllFunc(self, obj):
         """
         chiama tutte le funzioni della classe che eredita eccetto ...
         """
         for name, method in self.__class__.__dict__.iteritems():
-            if callable(method) and name != "__init__" and name != "__module__" and name != "__doc__" and name != "parseAll":                
+            if callable(method) and name != "__init__" and name != "__module__" and name != "__doc__" and name != "callAllFunc":                
                 method(self,obj)
     
-    def parsebyFunc(self, obj):
+    def callMatchFuncName(self, obj):
         """
-        chiama  le funzioni che matchano gli stessi nomi di funzione.
+        chiama tutte le funzioni e le confronta il nome dell'event
         """
         for name, method in self.__class__.__dict__.iteritems():
             if name == obj.event:
                 method(self,obj)
-            
-        
+               
 
 def function_name():
     return sys._getframe().f_back.f_code.co_name
