@@ -3,7 +3,7 @@ Created on Feb 18, 2014
 
 todo:
 - implement all At / firmware errors
-- implements Events on Uart!
+- implements ShellEvents on Uart!
 - use packages
 
 - send a command and receive answer in a timeout value
@@ -49,7 +49,7 @@ class SessionManager(object):
      def __init__(self):
         self.time = myTime()
         #cerates logfile and logErrorfile            
-        self.logFile = LogFile(LOG_FOLDER, self.time)   
+        self.ReadLogFile = ReadLogFile(LOG_FOLDER, self.time)   
         
 
 class UartM(SessionManager):
@@ -58,9 +58,9 @@ class UartM(SessionManager):
         super(self.__class__, self).__init__()                                               
         self._uart = Uart(UART_COM)            
         self._uart.subscribe(self.time.updTime)                
-        self._uart.subscribe(self.logFile.printConsole)
-        self._uart.subscribe(self.logFile.writeLog)
-       # self.uart.subscribe(Events.parse)                                      
+        self._uart.subscribe(self.ReadLogFile.printConsole)
+        self._uart.subscribe(self.ReadLogFile.writeLog)
+       # self.uart.subscribe(ShellEvents.parse)                                      
         
         self.fwc= FwCommands(self._uart)                 
        #start the uart thread 
@@ -70,21 +70,22 @@ class UartM(SessionManager):
                 
     def close(self):
         self._uart.close_ser()
-        self.logFile.closeLog()
+        self.ReadLogFile.closeLog()
 
 class LogFileM(SessionManager):    
 
     def __init__(self):    
         super(self.__class__, self).__init__()
-        self._file = logFile()           
-        self._events = Events()
+        self._file = ReadLogFile()           
+        self._events = ShellEvents()
         self._stats  = Statistics()
-        
+                
         self._events.subscribe(self._stats.parsebyFunc)
          
         #self._file.subscribe(self.time.updTime)                
-        #self._file.subscribe(self.logFile.printConsole)
-        self._file.subscribe(self.logFile.writeLog)
+        #self._file.subscribe(self.ReadLogFile.printConsole)
+        self._file.subscribe(self.ReadLogFile.writeLog)
+        
         self._file.subscribe(self._events.parseAll)                                      
                         
     def start(self, fileName):
@@ -92,7 +93,7 @@ class LogFileM(SessionManager):
         self._file.start()
                                 
     def closeSession(self):        
-        self.logFile.closeLog()                    
+        self.ReadLogFile.closeLog()                    
 
 def startUartLog():
         #just switch on the device and log all the errors 
@@ -103,10 +104,10 @@ def startUartLog():
 def startLogFile():
     location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-    logFile = location + "\\fw_logs\\log_13_03_multiple_send.txt"
+    ReadLogFile = location + "\\fw_logs\\log_13_03_multiple_send.txt"
     
     s = LogFileM()
-    s.start(logFile)
+    s.start(ReadLogFile)
     
 if __name__ == "__main__":
     startLogFile()

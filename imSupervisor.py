@@ -23,6 +23,11 @@ class Statistics(Parseble):
         if (Statistics.__log):
             print "fwReconnect"
 
-    def _iccid(self, evt):            
+    def iccid(self, evt):            
         if (Statistics.__log):
-            print "_iccid " + evt.str1            
+            print "iccid " + evt.str1            
+
+
+
+class MonitorConnections():
+    

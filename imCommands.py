@@ -60,7 +60,7 @@ class EventMsg():
         self.str1 = str1
         
 
-class Events(Observable, Parseble):
+class ShellEvents(Observable, Parseble):
     """
     todo: 
     
@@ -103,7 +103,7 @@ class Events(Observable, Parseble):
         if "SYS user on" in str:
             self.fire_action(EventMsg(str, function_name()))
     
-    def _iccid(self, str):
+    def iccid(self, str):
         pat = "(\#CCID: )(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 

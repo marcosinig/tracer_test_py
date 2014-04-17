@@ -10,6 +10,10 @@ import datetime
 import sys,os
 
 class Observable(object):
+    """
+    Objects that want to be notified have to register (subscribe) the entry point function
+    The Class that heredits, has to call fire_action and all the subsribers (entry point function) will be called
+    """
     def __init__(self):
         self.lcallback=[]
     
@@ -17,17 +21,27 @@ class Observable(object):
         self.lcallback.append(func)
     
     def fire_action(self, obj):
+        #method call when the subscribers want to be notified
         for func in self.lcallback:
             func(obj)
 
 class Parseble(object):
+    """
+    chiama le funzioni della classe che eredita 
+    """
        
     def parseAll(self, obj):
+        """
+        chiama tutte le funzioni della classe che eredita eccetto ...
+        """
         for name, method in self.__class__.__dict__.iteritems():
             if callable(method) and name != "__init__" and name != "__module__" and name != "__doc__" and name != "parseAll":                
                 method(self,obj)
     
     def parsebyFunc(self, obj):
+        """
+        chiama  le funzioni che matchano gli stessi nomi di funzione.
+        """
         for name, method in self.__class__.__dict__.iteritems():
             if name == obj.event:
                 method(self,obj)
@@ -126,7 +140,7 @@ class LogFile():
         self.logErrfile.close()
 
 
-class logFile(Observable):
+class ReadLogFile(Observable):
     
     def __init__(self):
         super(self.__class__, self).__init__()
