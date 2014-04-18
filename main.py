@@ -57,21 +57,41 @@ class UartM(SessionManager):
 
     def __init__(self):    
         super(self.__class__, self).__init__()                                               
-        self._uart = Uart(UART_COM)            
+        self._uart = Uart(UART_COM)    
+        self._events = ShellEvents()
+                
         self._uart.msubscribe(self.time.updTime)                
         self._uart.msubscribe(self.logFile.printConsole)
         self._uart.msubscribe(self.logFile.writeLog)
-       # self.uart.msubscribe(ShellEvents.parse)                                      
+        self._uart.msubscribe(self._events.callAllFunc)                                      
         
         self.fwc= FwCommands(self._uart)                 
-       #start the uart thread 
+      
        
     def start(self):
+        #start the uart thread
+        self._uart.open_ser() 
         self._uart.start()
-                
+        
     def close(self):
         self._uart.close_ser()
-        self.logFile.closeLog()
+        self.logFile.closeLog()                
+
+def startUartLog():
+    #just switch on the device and log all the errors 
+            
+    s = UartM()     
+    
+    s._connProf = ConnectionProfiling()
+    
+    s._events.msubscribe(s._connProf.evHand.callMatchFuncName)
+    
+    s.start()
+       
+    s.fwc.startFw()
+    
+
+#*******************
 
 class ParseLogFileM(SessionManager):    
 
@@ -92,28 +112,23 @@ class ParseLogFileM(SessionManager):
         self._file.start()
                                 
     def closeSession(self):        
-        self.ReadLogFile.closeLog()                    
-
-def startUartLog():
-        #just switch on the device and log all the errors 
-        s = UartM()        
-        s.fwc.startFw()
-        s.fwc.switchon()
+        self.ReadLogFile.closeLog()    
         
 def startLogFile():
     location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-    ReadLogFile = location + "//fw_logs//log_13_03_multiple_send.txt"
+    ReadLogFile = location + "\\fw_logs\\log_13_03_multiple_send.txt"
     
     prof = ParseLogFileM()
     
     #self._stats  = regHandlerConn()
     prof.connProf = ConnectionProfiling()
-     
-                
+                     
     prof._events.msubscribe(prof.connProf.evHand.callMatchFuncName)
     
     prof.start(ReadLogFile)
     
+
+    
 if __name__ == "__main__":
-    startLogFile()
+    startUartLog()

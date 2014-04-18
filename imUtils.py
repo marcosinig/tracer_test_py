@@ -51,31 +51,42 @@ def function_name():
     return sys._getframe().f_back.f_code.co_name
 
 class Uart(threading.Thread, Observable):
+                
+    def __init__(self, port):
+        #super(self.__class__, self).__init__()
+        
+        threading.Thread.__init__(self)
+        Observable.__init__(self)        
+        
+        self.serial_ref=None
+        
+        #threading.Thread.__init__(self)        
+        self.uart_port=port  
     
     def open_ser(self):
         try:
             self.serial_ref = serial.Serial(self.uart_port , baudrate=115200)
         except:
             print "Error on opening port "+ self.uart_port 
-            self.serial_ref.close()
-            sys.exit()
+            self.stop()            
+            raise Exception("Error on opening port "+ self.uart_port);
      
     def close_ser(self):
         self.serial_ref.close()
-        #TODO: stop the THREAD 
-        
-    def __init__(self, port):
-        super(self.__class__, self).__init__()
-        #threading.Thread.__init__(self)        
-        self.uart_port=port            
+        #TODO: stop the THREAD           
     
     def write(self,str):
-        try:
+        
+        if self.serial_ref == None:
+            raise Exception("Uart not open") 
+        
+        try:            
             self.serial_ref.write(str + "\r\n")
         except:
             print "Error on writing on port "+ self.uart_port 
-            self.serial_ref.close()   
-            sys.exit() 
+            #self.serial_ref.close()   
+            #self.stop()
+            raise Exception("Error on writing port "+ self.uart_port);
     
     def readlineCR(self):
         rv = ""    
@@ -92,7 +103,7 @@ class Uart(threading.Thread, Observable):
                 return rv
     
     def run(self):
-        self.open_ser()
+         #self.open_ser()
         while True:        
             rcv = self.readlineCR()            
             self.fire_action(rcv)
@@ -172,10 +183,11 @@ class myTime():
         self.datenow = datetime.datetime.now().strftime("%H:%M:%S.%f")   
         
 
-class StateMachine():
+class StateMachine(object):
     def __init__(self):
         self.handlers = {}
         self.startState = None
+        self.handler = None
         
 
     def add_state(self, name, handler):
@@ -185,12 +197,12 @@ class StateMachine():
 
     def set_start(self, name):
         self.startState = name.upper()
-
-    def run(self, cargo):
         try:
-            handler = self.handlers[self.startState]
+            self.handler = self.handlers[self.startState]
         except:
             raise Exception("must call .set_start() before .run()")
-     
-        newState = handler(cargo)
-        handler = self.handlers[newState.upper()]  
+
+    def run(self, cargo):            
+        newState = self.handler(cargo)
+        if newState != None:
+            self.handler = self.handlers[newState.upper()]  
