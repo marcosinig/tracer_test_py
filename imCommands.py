@@ -100,7 +100,9 @@ class ShellEvents(Observable, Parseble):
     
     def evAtCsq(self, str):
         if "+CSQ" in str:
-            self.fire_action(EventMsg(str, function_name()))
+            splitted_txt = str.split( )
+            if len(splitted_txt) == 2:
+                self.fire_action(EventMsg(str, function_name()))
      
     def evFwGprsActFailed(self, str):
         if "System gprs connection failed" in str:

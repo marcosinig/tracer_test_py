@@ -19,7 +19,7 @@ Verificare:
 
 Improvements:
 - L'handler degli eventi deve sottoscrivere e non usare parsable (problema eventi non esistenti)
-- State machine non è il max 
+- State machine non e il max 
 
 
 '''
@@ -70,7 +70,7 @@ class regHandlerConn(Parseble):
     
     def evAtCsq(self, evt):
         if (self.__class__.__log):
-            print function_name() 
+            print function_name()             
         self._clb(evt)
         
     #disconnect events
@@ -98,10 +98,11 @@ class regHandlerConn(Parseble):
    
          
 def getTimestamp():
-    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.datetime.now()
 
 def getMinutes(dt):
-    return dt.seconds/60
+    return str(dt.total_seconds() / 60)
+
 
 class ConnectionProfiling(StateMachine):
         
@@ -111,9 +112,9 @@ class ConnectionProfiling(StateMachine):
         
         if ev.event =="evFwSwitchOn":            
             newState = "On"
+            self.actionGoOnState()
         
-        if self.on_session != 0:
-            self.on_total += getTimestamp() - self.on_session
+        
         
         if newState != None:
             print "new State: " + newState 
@@ -122,14 +123,14 @@ class ConnectionProfiling(StateMachine):
     def on_state(self, ev):
         newState = None
         print function_name();
-        
-        on_session = getTimestamp()
+                
         
         if ev.event=="evAtGetIccid":
             self.iccid = ev.str1
         if ev.event == "evAtSgactAns":
             self.ip =  ev.str1
             newState = "Connected"
+            self.actionGoToConntected()
         
         if newState != None:
             print "new State: " + newState
@@ -138,12 +139,11 @@ class ConnectionProfiling(StateMachine):
     def connected_state(self, ev):
         newState = None
         print function_name();
-        
-        self.connected_session = getTimestamp()
-        
+                        
         
         if ev.event=="evAtNoCarrier" or ev.event=="evFwOffline" or  ev.event=="evFwRecconnetInterval":
             newState = "disconnected"
+            self.actionGoToDisconnected()
         
         #if ev.event=="evFwSwitchOff":
         #    newState = "off"    
@@ -154,11 +154,7 @@ class ConnectionProfiling(StateMachine):
 
     def disconnected_state(self, ev):
         newState = None
-        print function_name();
-        
-        self.connected_total += getTimestamp() - self.connected_session
-        print "Total Session Connection=" + getMinutes(self.connected_session)
-        print "Total Overall Connection=" + getMinutes(self.connected_total)
+        print function_name();                
         
         
         #if ev.event=="evFwSwitchOff":
@@ -168,7 +164,32 @@ class ConnectionProfiling(StateMachine):
             print "new State: " + newState
         return newState
 
+
+    def stuck_state(self, ev):
+        pass
     
+    def actionGoToConntected(self):
+        self.connected_session = getTimestamp()
+        #self.connected_session = datetime.datetime.now()
+    
+    def actionGoToDisconnected(self):
+        #self.connected_total = datetime.datetime.now() - self.connected_session
+       
+        
+        #print "Total Session Connection=" + getMinutes(self.connected_session)
+        
+        print "Total Session Connection=" + getMinutes( getTimestamp() - self.connected_session  )
+        #print "Total Overall Connection=" + getMinutes(self.connected_total)
+    
+    def actionGoOnState(self):
+        self.on_session = getTimestamp()
+    
+    #NOT CALLED YET
+    def actionGoOffState(self):
+        pass
+        if self.on_session != 0:
+            self.on_total = getTimestamp() - self.on_session
+        
 
     def __init__(self):
         super(self.__class__, self).__init__()        
@@ -191,7 +212,7 @@ class ConnectionProfiling(StateMachine):
         self.add_state("Disconnected", self.disconnected_state)
         
         #unkown state
-        self.add_state("Unkown", self.unkown_state)
+        self.add_state("stuck", self.stuck_state)
        
      
      
