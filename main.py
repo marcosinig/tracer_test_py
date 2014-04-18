@@ -50,7 +50,7 @@ class SessionManager(object):
      def __init__(self):
         self.time = myTime()
         #cerates logfile and logErrorfile            
-        self.ReadLogFile = ReadLogFile(LOG_FOLDER, self.time)   
+        self.logFile = LogFile(LOG_FOLDER, self.time)   
         
 
 class UartM(SessionManager):
@@ -59,8 +59,8 @@ class UartM(SessionManager):
         super(self.__class__, self).__init__()                                               
         self._uart = Uart(UART_COM)            
         self._uart.msubscribe(self.time.updTime)                
-        self._uart.msubscribe(self.ReadLogFile.printConsole)
-        self._uart.msubscribe(self.ReadLogFile.writeLog)
+        self._uart.msubscribe(self.logFile.printConsole)
+        self._uart.msubscribe(self.logFile.writeLog)
        # self.uart.msubscribe(ShellEvents.parse)                                      
         
         self.fwc= FwCommands(self._uart)                 
@@ -71,21 +71,19 @@ class UartM(SessionManager):
                 
     def close(self):
         self._uart.close_ser()
-        self.ReadLogFile.closeLog()
+        self.logFile.closeLog()
 
-class LogFileM(SessionManager):    
+class ParseLogFileM(SessionManager):    
 
     def __init__(self):    
         super(self.__class__, self).__init__()
         self._file = ReadLogFile()           
         self._events = ShellEvents()
-        self._stats  = Statistics()
-                
-        self._events.msubscribe(self._stats.callMatchFuncName)
+        
          
         #self._file.msubscribe(self.time.updTime)                
-        #self._file.msubscribe(self.ReadLogFile.printConsole)
-        self._file.msubscribe(self.ReadLogFile.writeLog)
+        #self._file.msubscribe(self.logFile.printConsole)
+        self._file.msubscribe(self.logFile.writeLog)
         
         self._file.msubscribe(self._events.callAllFunc)                                      
                         
@@ -105,10 +103,17 @@ def startUartLog():
 def startLogFile():
     location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-    ReadLogFile = location + "\\fw_logs\\log_13_03_multiple_send.txt"
+    ReadLogFile = location + "//fw_logs//log_13_03_multiple_send.txt"
     
-    s = LogFileM()
-    s.start(ReadLogFile)
+    prof = ParseLogFileM()
+    
+    #self._stats  = regHandlerConn()
+    prof.connProf = ConnectionProfiling()
+     
+                
+    prof._events.msubscribe(prof.connProf.evHand.callMatchFuncName)
+    
+    prof.start(ReadLogFile)
     
 if __name__ == "__main__":
     startLogFile()

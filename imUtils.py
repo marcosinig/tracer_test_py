@@ -170,3 +170,27 @@ class myTime():
         
     def __init__(self):
         self.datenow = datetime.datetime.now().strftime("%H:%M:%S.%f")   
+        
+
+class StateMachine():
+    def __init__(self):
+        self.handlers = {}
+        self.startState = None
+        
+
+    def add_state(self, name, handler):
+        name = name.upper()
+        self.handlers[name] = handler
+        
+
+    def set_start(self, name):
+        self.startState = name.upper()
+
+    def run(self, cargo):
+        try:
+            handler = self.handlers[self.startState]
+        except:
+            raise Exception("must call .set_start() before .run()")
+     
+        newState = handler(cargo)
+        handler = self.handlers[newState.upper()]  

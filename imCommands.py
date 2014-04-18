@@ -69,49 +69,53 @@ class ShellEvents(Observable, Parseble):
     def __init__(self):
         super(self.__class__, self).__init__()
                     
-    def cmeError(self, str):
+    def evCmeError(self, str):
         pat = "(.*) (\+CME ERROR:) (.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
             self.fire_action(EventMsg(str, function_name()))            
          
-    def hostEEFiles(self, str):
-        pat = "(\+SIFIXEV: Host EE Files Successfully Created)"
-        matchObj = (re.match( pat, str, re.M)) 
-        if matchObj: 
+    def evHostEEFiles(self, str):
+        if "SIFIXEV: Host EE Files Successfully Created" in str:
             self.fire_action(EventMsg(str, function_name()))
+       
          
-    def gpsacp(self, str):
+    def evGpsacp(self, str):
         pat = "(AT\$GPSACP)(.*)"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
             self.fire_action(EventMsg(str, function_name()))
     
-    def sgactQuery(self, str):
+    def evSgactQuery(self, str):
         if "AT#SGACT" in str:
             self.fire_action(EventMsg(str, function_name()))
     
-    def sgactAns(self, str):
-        pat = "(\#SGACT)(.*)"
-        matchObj = (re.match( pat, str, re.M)) 
-        if matchObj: 
+    def evSgactAns(self, str):
+        if "#SGACT" in str:
+            splitted_txt = str.split( )
+            if len(splitted_txt) == 2:
+                self.fire_action(EventMsg(str, function_name(), splitted_txt[1]))
+     
+    def evFwGprsActFailed(self, str):
+        if "System gprs connection failed" in str:
             self.fire_action(EventMsg(str, function_name()))
                 
-    def fwSwitchOn(self, str):
+    def evFwSwitchOn(self, str):
         if "SYS user on" in str:
             self.fire_action(EventMsg(str, function_name()))
     
-    def fwSwitchOff(self, str):
+    def evFwSwitchOff(self, str):
         if "SYS user off" in str:
             self.fire_action(EventMsg(str, function_name()))
     
     
-    def getIccid(self, str):
-        pat = "(\#CCID: )(.*)"
-        matchObj = (re.match( pat, str, re.M)) 
-        if matchObj: 
-            self.fire_action(EventMsg(str, function_name(), matchObj.group(2)))
-                
+    def evGetIccid(self, str):
+        if "#CCID" in str:
+            splitted_txt = str.split( )
+            if len(splitted_txt) == 2:
+                self.fire_action(EventMsg(str, function_name(), splitted_txt[1]))
+            
+                 
 
     
 
