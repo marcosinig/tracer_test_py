@@ -37,37 +37,48 @@ import datetime
 
 
 from imUtils import *
-from imCommands import *
-from imSupervisor import *
+from imFwInterface import *
+from imFwConnProfiling import *
 from imMqtt import *
+import platform
 
-UART_COM = "COM8"
-LOG_FOLDER = "logs"         
 
-     
+UART_WIN = "COM8"
+UART_MAC = "/dev/cu.usbmodemimTrace1"
+
+LOG_FOLDER = "logs"              
         
+
+    
 class SessionManager(object):
-     def __init__(self):
+    """
+    Common int Session
+    """
+    
+    def __init__(self):
         self.time = myTime()
         #cerates logfile and logErrorfile            
-        self.logFile = LogFile(LOG_FOLDER, self.time)   
+        self.logFile = LogFile(LOG_FOLDER, self.time)  
+          
         
 
 class UartM(SessionManager):
-
+    """
+    Uart Firmware Manager
+    """
+    
     def __init__(self):    
         super(self.__class__, self).__init__()                                               
-        self._uart = Uart(UART_COM)    
+        self._uart = Uart(UartM.returnOsCom())    
         self._events = ShellEvents()
                 
         self._uart.msubscribe(self.time.updTime)                
         self._uart.msubscribe(self.logFile.printConsole)
-        self._uart.msubscribe(self.logFile.writeLog)
+        self._uart.msubscribe(self.logFile.fwLog)
         self._uart.msubscribe(self._events.callAllFunc)                                      
         
-        self.fwc= FwCommands(self._uart)                 
+        self.fwCmd= FwCommands(self._uart)                 
       
-       
     def start(self):
         #start the uart thread
         self._uart.open_ser() 
@@ -75,20 +86,25 @@ class UartM(SessionManager):
         
     def close(self):
         self._uart.close_ser()
-        self.logFile.closeLog()                
+        self.logFile.closeLog()
+        
+    @staticmethod 
+    def returnOsCom():
+        if platform.system() == "Windows":
+            return UART_WIN
+        if platform.system() == "Darwin":
+            return UART_MAC               
 
 def startUartLog():
     #just switch on the device and log all the errors 
-            
-    s = UartM()     
+    global sessMng        
+    sessMng = UartM()     
+    sessMng._stateMac = FwConnStateMachine(sessMng.logFile.evLog)
+    sessMng._events.msubscribe(sessMng._stateMac.evHand.callMatchFuncName)
     
-    s._connProf = ConnectionProfiling()
+    sessMng.start()
     
-    s._events.msubscribe(s._connProf.evHand.callMatchFuncName)
-    
-    s.start()
-       
-    s.fwc.startFw()
+    #sessMng.fwCmd.startFw()
     
 
 #*******************
@@ -100,11 +116,9 @@ class ParseLogFileM(SessionManager):
         self._file = ReadLogFile()           
         self._events = ShellEvents()
         
-         
         #self._file.msubscribe(self.time.updTime)                
-        #self._file.msubscribe(self.logFile.printConsole)
-        self._file.msubscribe(self.logFile.writeLog)
-        
+        self._file.msubscribe(self.logFile.printConsole)
+        self._file.msubscribe(self.logFile.fwLog)
         self._file.msubscribe(self._events.callAllFunc)                                      
                         
     def start(self, fileName):
@@ -116,19 +130,19 @@ class ParseLogFileM(SessionManager):
         
 def startLogFile():
     location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-
-    ReadLogFile = location + "\\fw_logs\\log_13_03_multiple_send.txt"
+    ReadLogFile = location + "//fw_logs//log_13_03_multiple_send.txt"
     
-    prof = ParseLogFileM()
+    sessMng = ParseLogFileM()
     
     #self._stats  = regHandlerConn()
-    prof.connProf = ConnectionProfiling()
+    sessMng.stMachine = FwConnStateMachine(sessMng.logFile.evLog)
                      
-    prof._events.msubscribe(prof.connProf.evHand.callMatchFuncName)
+    sessMng._events.msubscribe(sessMng.stMachine.evHand.callMatchFuncName)
     
-    prof.start(ReadLogFile)
+    sessMng.start(ReadLogFile)
     
 
-    
+sessMng = None    
 if __name__ == "__main__":
+    startUartLog()
     startLogFile()

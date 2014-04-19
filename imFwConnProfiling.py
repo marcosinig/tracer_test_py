@@ -25,7 +25,7 @@ Improvements:
 '''
 
 from imUtils  import *
-from imCommands import *
+from imFwInterface import *
  
 
 
@@ -101,10 +101,10 @@ def getTimestamp():
     return datetime.datetime.now()
 
 def getMinutes(dt):
-    return str(dt.total_seconds() / 60)
+    return dt.total_seconds() / 60
 
 
-class ConnectionProfiling(StateMachine):
+class FwConnStateMachine(StateMachine):
         
     def off_state(self,ev):
         newState = None
@@ -113,8 +113,6 @@ class ConnectionProfiling(StateMachine):
         if ev.event =="evFwSwitchOn":            
             newState = "On"
             self.actionGoOnState()
-        
-        
         
         if newState != None:
             print "new State: " + newState 
@@ -169,17 +167,20 @@ class ConnectionProfiling(StateMachine):
         pass
     
     def actionGoToConntected(self):
+        self.connected_ntimes += 1
         self.connected_session = getTimestamp()
         #self.connected_session = datetime.datetime.now()
     
     def actionGoToDisconnected(self):
-        #self.connected_total = datetime.datetime.now() - self.connected_session
-       
         
-        #print "Total Session Connection=" + getMinutes(self.connected_session)
+        minutes_session = getMinutes( getTimestamp() - self.connected_session  )
+        self.connected_total += minutes_session
+               
+        print "Total minutes Session Connection=" + str(minutes_session)
+        print "Total Overall Connection=" + str(self.connected_total)
         
-        print "Total Session Connection=" + getMinutes( getTimestamp() - self.connected_session  )
-        #print "Total Overall Connection=" + getMinutes(self.connected_total)
+        self.log("Total minutes Session Connection=" + str(minutes_session))
+        self.log("Total Overall Connection=" + str(self.connected_total))
     
     def actionGoOnState(self):
         self.on_session = getTimestamp()
@@ -191,9 +192,10 @@ class ConnectionProfiling(StateMachine):
             self.on_total = getTimestamp() - self.on_session
         
 
-    def __init__(self):
+    def __init__(self, log):
         super(self.__class__, self).__init__()        
         self.evHand = regHandlerConn(self.run)
+        self.log = log
         
         self.iccid=None
         self.ip=None
@@ -201,6 +203,7 @@ class ConnectionProfiling(StateMachine):
         self.on_session=0
         self.on_total=0
         
+        self.connected_ntimes=0
         self.connected_session=0
         self.connected_total=0
               

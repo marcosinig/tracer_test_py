@@ -2,12 +2,18 @@
 Created on 7 Apr 2014
 
 @author: marco
+
+TODO:
+LogFile should open consecutive file name (using now date timestamp)
+
 '''
 
 import serial 
 import threading
 import datetime
 import sys,os
+ 
+
 
 class Observable(object):
     """
@@ -71,9 +77,9 @@ class Uart(threading.Thread, Observable):
             self.stop()            
             raise Exception("Error on opening port "+ self.uart_port);
      
-    def close_ser(self):
+    def stop(self):
+        self._stop.set()
         self.serial_ref.close()
-        #TODO: stop the THREAD           
     
     def write(self,str):
         
@@ -84,8 +90,7 @@ class Uart(threading.Thread, Observable):
             self.serial_ref.write(str + "\r\n")
         except:
             print "Error on writing on port "+ self.uart_port 
-            #self.serial_ref.close()   
-            #self.stop()
+            self.stop()
             raise Exception("Error on writing port "+ self.uart_port);
     
     def readlineCR(self):
@@ -103,7 +108,6 @@ class Uart(threading.Thread, Observable):
                 return rv
     
     def run(self):
-         #self.open_ser()
         while True:        
             rcv = self.readlineCR()            
             self.fire_action(rcv)
@@ -115,6 +119,11 @@ class LogFile():
         #print in the shell
         sys.stdout.write(str)
         sys.stdout.flush()
+    
+    #FWLOG = "FWLOG"
+    #EVLOG = "EVLOG"
+    #writeLog
+
     
     def __init__(self, folder, time):        
         self.time = time      
@@ -129,29 +138,38 @@ class LogFile():
         self.logfile.write("\n")
         self.logfile.flush()
         
-        #open error file
-        self.logErrfile  = open(os.path.join(location, 'logError_' + self.time.getLogStr()  +'.txt'), 'w')            
-        self.logErrfile.write("\n")
-        self.logErrfile.flush()
+        #open Events file
+        self.logEvent  = open(os.path.join(location, 'logEvents_' + self.time.getLogStr()  +'.txt'), 'w')            
+        self.logEvent.write("\n")
+        self.logEvent.flush()
+        
+    def log(self, type, str):
+        self.LogType[type](str)
      
-    def writeLog(self,str):
+    def fwLog(self,str):
         #append in teh log file                              
         self.logfile.write(self.time.getTime() + " " + str + "\n")
         self.logfile.flush()
         
-    def writeErrLog(self,str):
+    def evLog(self,str):
         #append in teh log file                              
-        self.logErrfile.write(self.time.getTime() + " " + str + "\n")
-        self.logErrfile.flush()
-      
+        self.logEvent.write(self.time.getTime() + ">> " + str + "\n")
+        self.logEvent.flush()
+        
+        self.fwLog(">> " + str)
+                
     def closeLog(self):
         #close the log file
         self.logfile.close()
-        self.logErrfile.close()
+        self.logEvent.close()
+        
+    #LogType = { FWLOG: _fwLog, "EVLOG" : _evLog }
 
 
 class ReadLogFile(Observable):
-    
+    """
+    Class for  reading Fw Log Files
+    """
     def __init__(self):
         super(self.__class__, self).__init__()
                 
