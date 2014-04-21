@@ -128,8 +128,7 @@ class LogFile():
     def __init__(self, folder, time):        
         self.time = time      
                 
-        location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-        location = location +  "/" + folder
+        location = os.getcwd()  +  "/" + folder
         if not os.path.exists(location):
             os.makedirs(location)  
         

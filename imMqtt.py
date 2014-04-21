@@ -52,7 +52,7 @@ class MosqAdapter(threading.Thread, Observable):
         if MosqAdapter.__log:
             print(self.__class__.__name__  + " Log: Received msg " + msg.topic+" "+str(msg.qos)+" "+str(msg.payload))
         if self._msgClb is not None:            
-            self._msgClb(MqtMsgEvent(self.iccid, msg.topic, msg.payload))
+            self._msgClb(MqtMsgEvent( msg.topic, msg.payload))
         #self.fire_action(MqtMsgEvent(self.iccid, msg.topic, msg.payload))
     
     def on_publish(self, mosq, obj, mid):
@@ -85,8 +85,7 @@ class MosqAdapter(threading.Thread, Observable):
             
         self._mqttc.username_pw_set(MosqAdapter.__username,MosqAdapter.__password)
         
-        location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-        location = location +  "//immqttclient//client-ca.crt"
+        location = os.getcwd() +  "//immqttclient//client-ca.crt"
         
         if not os.path.exists(location):
             print("CA certificate does not exists " + location)
@@ -173,23 +172,29 @@ def mqttInit(iccid, eventCallbck):
     
        
     
-def testEvents():
-    ICCID="89372021131217026926"
+class testEvents():
     
-    ev = MqttEvents()
-    m = MosqAdapter(MqttServer1(),ICCID, ev.callAllFunc)
+    def __init__(self):
+        ICCID="89372021131217026926"
+        
+        self.ev = MqttEvents()
+        self.m = MosqAdapter(MqttServer1(),ICCID, self.ev.callAllFunc)
+        
+        callbck = TestMqttEvents()
     
-    callbck = TestMqttEvents()
-
-    ev.msubscribe(callbck.callMatchFuncName)
-    
-    m.open()
-    m.start()
-    time.sleep(1)    
-    m.msubscribe()
-    m.pubHello()
+        self.ev.msubscribe(callbck.callMatchFuncName)
+        
+        self.m.open()
+        self.m.start()
+        time.sleep(1)    
+        self.m.msubscribe()
+        self.m.pubHello()
     
 if __name__ == "__main__":
-    testEvents()
+    t = testEvents()
+
+
+
+
         
     

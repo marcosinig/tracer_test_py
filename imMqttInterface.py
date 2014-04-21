@@ -20,7 +20,7 @@ class MqtMsgEvent():
     def _parseTopic(self):
         splitted_txt = self.topic.split("/")
         #the last list member has the topic
-        return splitted_txt[len(splitted_txt)]
+        return splitted_txt[len(splitted_txt) - 1]
         
     def __str__(self):
         return "iccid=" + self.iccid + "topic=" + self.topic + "payload=" + self.payload

@@ -54,8 +54,7 @@ class MosqAdapter(threading.Thread, Observable):
  
     def on_connect(self, mosq, obj, rc):
         #mosq.msubscribe("$SYS/#", 0)
-        if MosqAdapter.__log:
-            print(self.__class__.__name__ + " Log: on_connect rc: "+str(rc))
+        self.log.debug(self.__class__.__name__ + " Log: on_connect rc: "+str(rc))
     
     def on_message(self, mosq, obj, msg):
         self.log.debug("Received msg " + msg.topic+" "+str(msg.qos)+" "+str(msg.payload) )
@@ -65,21 +64,19 @@ class MosqAdapter(threading.Thread, Observable):
             self.log.error("No handler is defined")
     
     def on_publish(self, mosq, obj, mid):
-        if MosqAdapter.__log:
-            print(self.__class__.__name__  + " Log: on_publish mid: "+str(mid))
+        self.log.debug(self.__class__.__name__  + " Log: on_publish mid: "+str(mid))
     
     def on_subscribe(self, mosq, obj, mid, granted_qos):
-        if MosqAdapter.__log:
-            print(self.__class__.__name__  + "Log: Subscribed: "+str(mid)+" "+str(granted_qos))
+        self.log.debug(self.__class__.__name__  + "Log: Subscribed: "+str(mid)+" "+str(granted_qos))
     
     def on_log(self, mosq, obj, level, string):        
-            print(self.__class__.__name__  + " Log: "+ string)
+        self.log.debug(self.__class__.__name__  + " Log: "+ string)
     
     def on_disconnect(self, mosq, userdata, rc):
-        if MosqAdapter.__log:
-            print(self.__class__.__name__  + " Log: disconnect: ", rc)
+        self.log.debug(self.__class__.__name__  + " Log: disconnect: ", rc)
     
     def open(self):
+        self.log.debug("Starting Mosquito adapter..")
         self._mqttc = mosquitto.Mosquitto("MARCO-TEST")
         self._mqttc.on_message = self.on_message
         self._mqttc.on_connect = self.on_connect
@@ -93,11 +90,10 @@ class MosqAdapter(threading.Thread, Observable):
             
         self._mqttc.username_pw_set(MosqAdapter.__username,MosqAdapter.__password)
         
-        location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-        location = location +  "//immqttclient//client-ca.crt"
+        location = os.getcwd() +  "//immqttclient//client-ca.crt"
         
         if not os.path.exists(location):
-            print("CA certificate does not exists " + location)
+            self.log.error("CA certificate does not exists " + location)
             sys.exit()
         
         if self._mosServer.tls:
@@ -111,6 +107,7 @@ class MosqAdapter(threading.Thread, Observable):
     def subscribe(self, topic, callBack):
         #return code shoudl be kept and used againts the callbck
         #callback should be called when the confirmation is received
+        self.log.debug("Registering to topic " + topic)
         self._mqttc.subscribe(topic)
     
     def unscribe(self, topic):
@@ -127,12 +124,14 @@ class MqtDevice():
         self.mosAdapter= mosAdapter
         self.mqttEvents = mqttEvents
         
-        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
-        
+        self.log.debug("Create new device")
+
         self.connected_ntimes=0
         self.connected_session=0
         self.connected_total=0
+        
     
     def _subscribeClb(self):
         #unblock mutex
@@ -140,23 +139,26 @@ class MqtDevice():
         #NOT IMPLEMENTED YET
         pass
     
-    def subsribe(self):
+    def _subscribe(self):
+        self.log.debug("Subsribing to topic")
         topic = "C/" + self.iccid
-        ret = self.mosAdapter.subscribe(topic, self.subscribeClb)
+        ret = self.mosAdapter.subscribe(topic, self._subscribeClb)
         topic = "S/" + self.iccid
-        ret = self.mosAdapter.subscribe(topic, self.subscribeClb)
+        ret = self.mosAdapter.subscribe(topic, self._subscribeClb)
         topic = "D/S/" + self.iccid
-        ret = self.mosAdapter.subscribe(topic, self.subscribeClb)
+        ret = self.mosAdapter.subscribe(topic, self._subscribeClb)
         topic = "D/P/" + self.iccid
-        ret = self.mosAdapter.subscribe(topic, self.subscribeClb)
+        ret = self.mosAdapter.subscribe(topic, self._subscribeClb)
         
     def _online(self):
+        self.log.info("Received Hello, Online")
         self.connected_ntimes += 1
         self.connected_session = myTime.getTimestamp()
         
     def _offline(self):
         #HAS TO BE REPLACED BY AN EV INTERFACE (for grphics)
         #timevents is not logged!
+        self.log.info("Receved Bye, Offline")
         minutes_session = myTime.getDiffNowMin( self.connected_session  )
         self.connected_total += minutes_session
        
@@ -170,12 +172,12 @@ class MqtDevice():
         elif msg.__class__.__name__ == "MqttMsgGoodBye":
             self._offile()
     
-    def start(self):
-        self._subsribe()
+    def subscribe(self):
+        self._subscribe()
         self.mqttEvents.register(self.iccid, self.msgClb)
         
 
-class MqttEvents(Parseble):
+class MyMqttEvents(Parseble):
     """
     Implementation of the CallBack Template 
     Real Action has to be implemented here!
@@ -187,30 +189,33 @@ class MqttEvents(Parseble):
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def register(self, iccid, clb):
+        self.log.debug("Registering device iccid "+ iccid)
         self.registerDev[iccid] = clb
     
     def unregister(self, iccid):
         del self.registerDev[iccid]
     
     def mqttHello(self, mqtMsgEvent):
-        self.log.debug("Hello message")
+        self.log.debug("Hello message received")
         self.registerDev[mqtMsgEvent.iccid]()
     
     def mqttGoodbye(self, mqtMsgEvent):
         #action to be difened..!
-        self.log.debug("Goodby Will message")
+        self.log.debug("Goodby Will message received")
         self.registerDev[mqtMsgEvent.iccid]()
     
     
 class Devices():
         def __init__(self, mqttEvents):
-            self.devices = {}
+            self.devices = []
             self.mqttEvents = mqttEvents
-            self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+            self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
         def addDevice(self, iccid, mosAd):
+            self.log.debug("Adding device iccid " + iccid)
             dev = MqtDevice(iccid, mosAd, self.mqttEvents)
-            self.devices[iccid] = dev
+            self.devices.append(dev)
+            return dev
         
         def removeDevice(self, index):
             #to implement
@@ -219,28 +224,37 @@ class Devices():
             
             pass
         
-        def listDevices(self):
-            #to implement
-            #TODO: a incremental list has to be returned for indexing
+        def getDevByIccid(self, iccid):
             pass
+        def getDevByIndex(self, index):
+            pass
+        def listDevices(self):
+            for index, dev in enumerate(self.devices):
+                print "index " + index + " iccid " + dev.iccid
     
 class Factory():
     
-    def build(self):
+    def __init__(self):
         self.ev = MqttEvents()
         self.mAd = MosqAdapter(MqttServer1(), self.ev.callAllFunc)
+        self.mAd.open()
         
-        self.devices = Devices(self.ev)
-    
+        self.myEv = MyMqttEvents()
+        self.ev.msubscribe(self.myEv.callMatchFuncName)
+        
+        self.devices = Devices(self.myEv)
     
     def test1AddDev(self):
-        self.devices.addDevice("XXX", self.mAd)
+        dev = self.devices.addDevice("89372021131217026926", self.mAd)
+        dev.subscribe()
+        
     
     def test1DelDev(self,):
-        
+        pass
         
     
-if __name__ == "__main__":
-    
+#if __name__ == "__main__":
+f = Factory()
+f.test1AddDev()
         
     
