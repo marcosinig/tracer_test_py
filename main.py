@@ -32,7 +32,6 @@ NOT WORKING:
 @author: I'm
 '''
 
-
 import datetime
 
 
@@ -47,7 +46,9 @@ UART_WIN = "COM8"
 UART_MAC = "/dev/cu.usbmodemimTrace1"
 
 LOG_FOLDER = "logs"              
-        
+
+logger = logging.getLogger(__name__)        
+configureLog(logger)
 
     
 class SessionManager(object):
@@ -71,6 +72,7 @@ class UartM(SessionManager):
         super(self.__class__, self).__init__()                                               
         self._uart = Uart(UartM.returnOsCom())    
         self._events = ShellEvents()
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
                 
         self._uart.msubscribe(self.time.updTime)                
         self._uart.msubscribe(self.logFile.printConsole)
@@ -81,6 +83,7 @@ class UartM(SessionManager):
       
     def start(self):
         #start the uart thread
+        logger.info("Starting Uart parsing com " + self._uart.uart_port)
         self._uart.open_ser() 
         self._uart.start()
         
@@ -115,6 +118,7 @@ class ParseLogFileM(SessionManager):
         super(self.__class__, self).__init__()
         self._file = ReadLogFile()           
         self._events = ShellEvents()
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         
         #self._file.msubscribe(self.time.updTime)                
         self._file.msubscribe(self.logFile.printConsole)
@@ -122,15 +126,18 @@ class ParseLogFileM(SessionManager):
         self._file.msubscribe(self._events.callAllFunc)                                      
                         
     def start(self, fileName):
+        self.logger.info("Starting Parsing");
         self._file.open(fileName)
         self._file.start()
                                 
     def closeSession(self):        
         self.ReadLogFile.closeLog()    
         
-def startLogFile():
-    location = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    ReadLogFile = location + "//fw_logs//log_13_03_multiple_send.txt"
+def startParseLogFile():
+    logPath = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+    logPath = logPath + "//fw_logs//log_13_03_multiple_send.txt"
+    
+    logger.info("Starting ParseLogFile file: " + logPath);
     
     sessMng = ParseLogFileM()
     
@@ -139,10 +146,12 @@ def startLogFile():
                      
     sessMng._events.msubscribe(sessMng.stMachine.evHand.callMatchFuncName)
     
-    sessMng.start(ReadLogFile)
+    sessMng.start(logPath)
     
 
 sessMng = None    
 if __name__ == "__main__":
-    startUartLog()
-    startLogFile()
+    logger.info("Starting Main");
+    #startUartLog()
+    startParseLogFile()
+    

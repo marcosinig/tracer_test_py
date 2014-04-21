@@ -59,7 +59,7 @@ class GSpread(threading.Thread):
     def publish_row_thread(self):
         msg = self.__msgQueue.get()
         self.__spr_client.InsertRow(msg.getDict(), key=self.spreadsheet_key, wksht_id=self.worksheet_id)
-        if self.log==1:
+        if self.logEv==1:
             print("Row submitted:")
             msg.printD()
         msg.task_done()    

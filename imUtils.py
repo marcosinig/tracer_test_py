@@ -12,7 +12,7 @@ import serial
 import threading
 import datetime
 import sys,os
- 
+import logging
 
 
 class Observable(object):
@@ -143,23 +143,23 @@ class LogFile():
         self.logEvent.write("\n")
         self.logEvent.flush()
         
-    def log(self, type, str):
+    def logEv(self, type, str):
         self.LogType[type](str)
      
     def fwLog(self,str):
-        #append in teh log file                              
+        #append in teh logEv file                              
         self.logfile.write(self.time.getTime() + " " + str + "\n")
         self.logfile.flush()
         
     def evLog(self,str):
-        #append in teh log file                              
+        #append in teh logEv file                              
         self.logEvent.write(self.time.getTime() + ">> " + str + "\n")
         self.logEvent.flush()
         
         self.fwLog(">> " + str)
                 
     def closeLog(self):
-        #close the log file
+        #close the logEv file
         self.logfile.close()
         self.logEvent.close()
         
@@ -187,6 +187,13 @@ class ReadLogFile(Observable):
             self.fire_action(line)
             
 class myTime():     
+    
+    @staticmethod
+    def getTimestamp():
+        return datetime.datetime.now()
+    @staticmethod
+    def getDiffNowMin(dt):
+        return (myTime.getTimestamp() - dt).total_seconds() / 60
     
     def getTime(self):
         return self.datenow
@@ -224,3 +231,24 @@ class StateMachine(object):
         newState = self.handler(cargo)
         if newState != None:
             self.handler = self.handlers[newState.upper()]  
+
+def configureLog(logger):
+    #TODO: confguration is wrong,.,
+    
+    # create logger 
+    #logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    # create file handler which logs even debug messages
+    fh = logging.FileHandler('logger.txt')
+    fh.setLevel(logging.DEBUG)
+    # create console handler with a higher log level
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    # create formatter and add it to the handlers
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    #formatter =  logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+    # add the handlers to the logger
+    logger.addHandler(fh)
+    logger.addHandler(ch)
