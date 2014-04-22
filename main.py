@@ -38,7 +38,6 @@ import datetime
 from imUtils import *
 from imFwInterface import *
 from imFwConnProfiling import *
-from imMqtt import *
 import platform
 
 
@@ -47,8 +46,8 @@ UART_MAC = "/dev/cu.usbmodemimTrace1"
 
 LOG_FOLDER = "logs"              
 
-logger = logging.getLogger(__name__)        
-configureLog(logger)
+#logger = logging.getLogger(__name__)        
+#configureLog(logger)
 
     
 class SessionManager(object):
@@ -107,7 +106,9 @@ def startUartLog():
     
     sessMng.start()
     
-    #sessMng.fwCmd.startFw()
+    sessMng.fwCmd.FwEnableTraces()
+    
+    sessMng.simBtns()
     
 
 #*******************
@@ -153,5 +154,5 @@ sessMng = None
 if __name__ == "__main__":
     logger.info("Starting Main");
     #startUartLog()
-    startParseLogFile()
+    #startParseLogFile()
     

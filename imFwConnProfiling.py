@@ -5,9 +5,8 @@ Created on 14/apr/2014
 
 TODO:
 
--passare handler al file di logEv!
+-cambiare macchina a stati sugli eventi? logica piu chiara.
 
-- print statistic info to file e ??
 - comando per scatenare il ping statistiche
 - fare classe Profiling con solo dati prof
 
@@ -15,7 +14,6 @@ TODO:
 
 
 Verificare:
-- date
 
 Improvements:
 - L'handler degli eventi deve sottoscrivere e non usare parsable (problema eventi non esistenti)
@@ -55,8 +53,7 @@ class regHandlerConn(Parseble):
         if (self.__class__.__log):
             self.logger.debug( function_name() + " iccid " + evt.str1 )
         self._clb(evt)
-    def evMqttHello(self, mqtMsgEvent):
-        self.logger.debug( function_name() +" TestMqttEvents Hello")
+        
     def evFwGprsActFailed(self, evt):
         if (self.__class__.__log):
             self.logger.debug( function_name())
@@ -71,26 +68,37 @@ class regHandlerConn(Parseble):
     #general errors
     def evAtCmeError(self, evt):
         if (self.__class__.__log):
-            self.logger.debug( function_name() )
+            self.logger.debug( function_name() )    
+        self.logger.error( function_name() + str(evt))        
         self._clb(evt)  
     
+    def evAtHostEEFiles(self, evt):
+        if (self.__class__.__log):
+            self.logger.debug( function_name() )   
+        self.logger.error( function_name() + str(evt))        
+        self._clb(evt)  
+    
+    #CSQ - not used..
     def evAtCsq(self, evt):
         if (self.__class__.__log):
             self.logger.debug( function_name() )             
         self._clb(evt)
-        
-    #disconnect events
+    
+    #reconnect procedure, NOT HANDLED yet    
     def evFwSystemReconnect(self, evt):
         if (self.__class__.__log):
             self.logger.debug( function_name() )
-        self._clb(evt)          
+        self._clb(evt)    
+    
+    #disconnect events      
     def evFwOffline(self, evt):
         if (self.__class__.__log):
             self.logger.debug( function_name() )
         self._clb(evt)
     def evAtNoCarrier(self, evt):
         if (self.__class__.__log):
-            self.logger.debug( function_name() )          
+            self.logger.debug( function_name() )  
+        self.logger.error( function_name() + str(evt))                
         self._clb(evt)  
     def evFwRecconnetInterval(self, evt):
         if (self.__class__.__log):
@@ -99,10 +107,9 @@ class regHandlerConn(Parseble):
     def evAtSslErrors(self, evt):
         if (self.__class__.__log):
             self.logger.debug( function_name() )
+        self.logger.error( function_name() + str(evt))        
         self._clb(evt) 
         
-   
-
 
 class FwConnStateMachine(StateMachine):
         
@@ -120,7 +127,7 @@ class FwConnStateMachine(StateMachine):
     
     def on_state(self, ev):
         newState = None
-        self.logger.debug( function_name()) 
+        #self.logger.debug( function_name()) 
                 
         
         if ev.event=="evAtGetIccid":
@@ -136,7 +143,7 @@ class FwConnStateMachine(StateMachine):
     
     def connected_state(self, ev):
         newState = None
-        self.logger.debug( function_name()) 
+        #self.logger.debug( function_name()) 
                         
         
         if ev.event=="evAtNoCarrier" or ev.event=="evFwOffline" or  ev.event=="evFwRecconnetInterval":
@@ -152,7 +159,7 @@ class FwConnStateMachine(StateMachine):
 
     def disconnected_state(self, ev):
         newState = None
-        self.logger.debug( function_name())               
+        #self.logger.debug( function_name())               
         
         
         #if ev.event=="evFwSwitchOff":
@@ -167,10 +174,17 @@ class FwConnStateMachine(StateMachine):
         pass
     
     def actionGoToConntected(self):
+        self.logger.debug( function_name())
         self.connected_ntimes += 1
+        self.logger.info("Connected times " + str(self.connected_ntimes))
+
         self.connected_session = myTime.getTimestamp()
     
     def actionGoToDisconnected(self):
+        self.logger.debug( function_name())
+        
+        self.disconnected_ntimes += 1
+        self.logger.info("Disconnected times " + str(self.disconnected_ntimes))
         
         minutes_session = myTime.getDiffNowMin( self.connected_session  )
         self.connected_total += minutes_session
@@ -182,14 +196,20 @@ class FwConnStateMachine(StateMachine):
         self.logEv("Total Overall Connection=" + str(self.connected_total))
     
     def actionGoOnState(self):
+        self.logger.debug( function_name())
         self.on_session = myTime.getTimestamp()
     
     #NOT CALLED YET
     def actionGoOffState(self):
-        pass
-        if self.on_session != 0:
-            self.on_total = myTime.getDiffNowMin( self.on_session  ) 
+        self.logger.debug( function_name())
+        self.on_total = myTime.getDiffNowMin( self.on_session  ) 
         
+    def printStats(self):
+        self.logger.info("Connected times " + str(self.connected_ntimes))
+        self.logger.info("Disconnected times " + str(self.connected_ntimes))
+        self.logger.info( "Total Overall Connection=" + str(self.connected_total) )
+        #print state machine status
+
 
     def __init__(self, logEv):
         super(self.__class__, self).__init__()        
@@ -205,6 +225,8 @@ class FwConnStateMachine(StateMachine):
         self.on_total=0
         
         self.connected_ntimes=0
+        self.disconnected_ntimes=0
+
         self.connected_session=0
         self.connected_total=0
               

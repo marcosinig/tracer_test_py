@@ -232,6 +232,7 @@ class StateMachine(object):
             self.handler = self.handlers[newState.upper()]  
 
 def configureLog(logger):
+    
     #TODO: confguration is wrong,.,
     
     # create logger 

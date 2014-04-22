@@ -39,9 +39,11 @@ class FwCommands():
     def gsm(self,str):
         self.__uart.write("uart"+ " " + str)
         
-    def startFw(self):
+    def FwEnableTraces(self):
         self.enable_trace()
         self.enable_atflow()
+    
+    def simBtns(self):
         self.switchon()
         
     def onGsm(self):
@@ -59,6 +61,9 @@ class EventMsg():
         self.event=event
         self.str1 = str1
         
+    def __str__(self):
+        return "Event= " + self.event + " line= " + self.line 
+     
 
 class ShellEvents(Observable, Parseble):
     """

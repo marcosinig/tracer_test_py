@@ -24,8 +24,9 @@ from imUtils import *
 
 #SHOULD NOT BE USED
 #HAS TO BE INVESTIGATED
-logger = logging.getLogger(__name__)        
-configureLog(logger)
+
+#logger = logging.getLogger(__name__)        
+#configureLog(logger)
         
 class MqttServer1():
     def __init__(self):
