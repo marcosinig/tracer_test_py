@@ -58,28 +58,34 @@ def function_name():
 
 class Uart(threading.Thread, Observable):
                 
-    def __init__(self, port):
-        #super(self.__class__, self).__init__()
-        
+    def __init__(self, port):                
         threading.Thread.__init__(self)
-        Observable.__init__(self)        
+        Observable.__init__(self) 
+        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
         
-        self.serial_ref=None
+        self.serial_ref=None                
+        self.uart_port=port         
+        self._stop = threading.Event() 
         
-        #threading.Thread.__init__(self)        
-        self.uart_port=port  
+    def __del__(self):
+        self.log.debug("Called del ")
+        self._stop.set()       
+        if self.serial_ref != None:
+            self.serial_ref.close()
     
     def open_ser(self):
         try:
             self.serial_ref = serial.Serial(self.uart_port , baudrate=115200)
         except:
-            print "Error on opening port "+ self.uart_port 
+            self.log.error("Error on opening port "+ self.uart_port) 
             self.stop()            
             raise Exception("Error on opening port "+ self.uart_port);
      
     def stop(self):
-        self._stop.set()
-        self.serial_ref.close()
+        self.log.debug("Called Stop ")
+        self._stop.set()       
+        if self.serial_ref != None:
+            self.serial_ref.close()
     
     def write(self,str):
         
@@ -89,7 +95,7 @@ class Uart(threading.Thread, Observable):
         try:            
             self.serial_ref.write(str + "\r\n")
         except:
-            print "Error on writing on port "+ self.uart_port 
+            self.log.error( "Error on writing on port "+ self.uart_port) 
             self.stop()
             raise Exception("Error on writing port "+ self.uart_port);
     
@@ -100,7 +106,7 @@ class Uart(threading.Thread, Observable):
             try:
                 ch = self.serial_ref.read()
             except:
-                print "Error on reading on port "+ self.uart_port 
+                self.log.error("Error on reading on port "+ self.uart_port) 
                 self.serial_ref.close()
                     
             rv += ch
@@ -213,14 +219,16 @@ class StateMachine(object):
         self.startState = None
         self.handler = None
         
-
     def add_state(self, name, handler):
         name = name.upper()
         self.handlers[name] = handler
+    
+    def get_State(self):
+        return 
         
-
     def set_start(self, name):
         self.startState = name.upper()
+        self.currentState = self.startState
         try:
             self.handler = self.handlers[self.startState]
         except:
@@ -229,7 +237,8 @@ class StateMachine(object):
     def run(self, cargo):            
         newState = self.handler(cargo)
         if newState != None:
-            self.handler = self.handlers[newState.upper()]  
+            self.handler = self.handlers[newState.upper()]
+            self.currentState = newState   
 
 def configureLog(logger):
     

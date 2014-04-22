@@ -39,9 +39,11 @@ class regHandlerConn(Parseble):
     """
     __log=1
     
-    def __init__(self, clb):
+    def __init__(self, clb, stateMachine, logEv):
         super(self.__class__, self).__init__()
         self._clb=clb
+        self.stateM = stateMachine
+        self.logEv= logEv
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         
     def evFwSwitchOn(self, evt):
@@ -75,7 +77,9 @@ class regHandlerConn(Parseble):
     def evAtHostEEFiles(self, evt):
         if (self.__class__.__log):
             self.logger.debug( function_name() )   
-        self.logger.error( function_name() + str(evt))        
+        if self.stateM == "Connected" or self.stateM == "Disconnected":
+            self.logEv(function_name() + str(evt))
+            self.logger.error( function_name() + str(evt))        
         self._clb(evt)  
     
     #CSQ - not used..
@@ -213,7 +217,7 @@ class FwConnStateMachine(StateMachine):
 
     def __init__(self, logEv):
         super(self.__class__, self).__init__()        
-        self.evHand = regHandlerConn(self.run)
+        self.evHand = regHandlerConn(self.run, self, logEv)
         self.logEv  = logEv
         
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)

@@ -39,6 +39,7 @@ from imUtils import *
 from imFwInterface import *
 from imFwConnProfiling import *
 import platform
+import time
 
 
 UART_WIN = "COM8"
@@ -78,7 +79,13 @@ class UartM(SessionManager):
         self._uart.msubscribe(self.logFile.fwLog)
         self._uart.msubscribe(self._events.callAllFunc)                                      
         
-        self.fwCmd= FwCommands(self._uart)                 
+        self.fwCmd= FwCommands(self._uart)     
+        
+    def __del__(self):
+        self.logger.debug("Called del ")
+        del self._uart
+        del self._events
+          
       
     def start(self):
         #start the uart thread
@@ -108,7 +115,13 @@ def startUartLog():
     
     sessMng.fwCmd.FwEnableTraces()
     
-    sessMng.simBtns()
+    sessMng.fwCmd.simBtns()
+    
+    time.sleep(1)
+    
+    del sessMng
+    
+    
     
 
 #*******************
@@ -134,12 +147,12 @@ class ParseLogFileM(SessionManager):
     def closeSession(self):        
         self.ReadLogFile.closeLog()    
         
-def startParseLogFile():
-    logPath = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-    logPath = logPath + "//fw_logs//log_13_03_multiple_send.txt"
-    
+def startParseLogFile():            
     logger.info("Starting ParseLogFile file: " + logPath);
     
+    logPath =  os.getcwd()  + "//fw_logs//log_13_03_multiple_send.txt"
+    
+    global sessMng    
     sessMng = ParseLogFileM()
     
     #self._stats  = regHandlerConn()
