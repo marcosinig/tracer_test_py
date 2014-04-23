@@ -25,8 +25,8 @@ from imUtils import *
 #SHOULD NOT BE USED
 #HAS TO BE INVESTIGATED
 
-#logger = logging.getLogger(__name__)        
-#configureLog(logger)
+#_log = logging.getLogger(__name__)        
+#configureLog(_log)
         
 class MqttServer1():
     def __init__(self):
@@ -50,34 +50,34 @@ class MosqAdapter(threading.Thread, Observable):
         super(self.__class__, self).__init__()
         self._mosServer = mosServer
         self._msgClb=callback
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
  
     def on_connect(self, mosq, obj, rc):
         #mosq.msubscribe("$SYS/#", 0)
-        self.log.debug(self.__class__.__name__ + " Log: on_connect rc: "+str(rc))
+        self._log.debug(self.__class__.__name__ + " Log: on_connect rc: "+str(rc))
     
     def on_message(self, mosq, obj, msg):
-        self.log.debug("Received msg " + msg.topic+" "+str(msg.qos)+" "+str(msg.payload) )
+        self._log.debug("Received msg " + msg.topic+" "+str(msg.qos)+" "+str(msg.payload) )
         if self._msgClb is not None:            
             self._msgClb(MqtMsgEvent( msg.topic, msg.payload))
         else:
-            self.log.error("No handler is defined")
+            self._log.error("No handler is defined")
     
     def on_publish(self, mosq, obj, mid):
-        self.log.debug(self.__class__.__name__  + " Log: on_publish mid: "+str(mid))
+        self._log.debug(self.__class__.__name__  + " Log: on_publish mid: "+str(mid))
     
     def on_subscribe(self, mosq, obj, mid, granted_qos):
-        self.log.debug(self.__class__.__name__  + "Log: Subscribed: "+str(mid)+" "+str(granted_qos))
+        self._log.debug(self.__class__.__name__  + "Log: Subscribed: "+str(mid)+" "+str(granted_qos))
     
     def on_log(self, mosq, obj, level, string):        
-        self.log.debug(self.__class__.__name__  + " Log: "+ string)
+        self._log.debug(self.__class__.__name__  + " Log: "+ string)
     
     def on_disconnect(self, mosq, userdata, rc):
-        self.log.debug(self.__class__.__name__  + " Log: disconnect: ", rc)
+        self._log.debug(self.__class__.__name__  + " Log: disconnect: ", rc)
     
     def open(self):
-        self.log.debug("Starting Mosquito adapter..")
+        self._log.debug("Starting Mosquito adapter..")
         self._mqttc = mosquitto.Mosquitto("MARCO-TEST")
         self._mqttc.on_message = self.on_message
         self._mqttc.on_connect = self.on_connect
@@ -94,7 +94,7 @@ class MosqAdapter(threading.Thread, Observable):
         location = os.getcwd() +  "//immqttclient//client-ca.crt"
         
         if not os.path.exists(location):
-            self.log.error("CA certificate does not exists " + location)
+            self._log.error("CA certificate does not exists " + location)
             sys.exit()
         
         if self._mosServer.tls:
@@ -108,7 +108,7 @@ class MosqAdapter(threading.Thread, Observable):
     def subscribe(self, topic, callBack):
         #return code shoudl be kept and used againts the callbck
         #callback should be called when the confirmation is received
-        self.log.debug("Registering to topic " + topic)
+        self._log.debug("Registering to topic " + topic)
         self._mqttc.subscribe(topic)
     
     def unscribe(self, topic):
@@ -125,9 +125,9 @@ class MqtDevice():
         self.mosAdapter= mosAdapter
         self.mqttEvents = mqttEvents
         
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
-        self.log.debug("Create new device")
+        self._log.debug("Create new device")
 
         self.connected_ntimes=0
         self.connected_session=0
@@ -141,7 +141,7 @@ class MqtDevice():
         pass
     
     def _subscribe(self):
-        self.log.debug("Subsribing to topic")
+        self._log.debug("Subsribing to topic")
         topic = "C/" + self.iccid
         ret = self.mosAdapter.subscribe(topic, self._subscribeClb)
         topic = "S/" + self.iccid
@@ -152,19 +152,19 @@ class MqtDevice():
         ret = self.mosAdapter.subscribe(topic, self._subscribeClb)
         
     def _online(self):
-        self.log.info("Received Hello, Online")
+        self._log.info("Received Hello, Online")
         self.connected_ntimes += 1
         self.connected_session = myTime.getTimestamp()
         
     def _offline(self):
         #HAS TO BE REPLACED BY AN EV INTERFACE (for grphics)
         #timevents is not logged!
-        self.log.info("Receved Bye, Offline")
+        self._log.info("Receved Bye, Offline")
         minutes_session = myTime.getDiffNowMin( self.connected_session  )
         self.connected_total += minutes_session
        
-        self.logger.info( "Total minutes Session Connection=" + str(minutes_session) )
-        self.logger.info( "Total Overall Connection=" + str(self.connected_total) )
+        self._log.info( "Total minutes Session Connection=" + str(minutes_session) )
+        self._log.info( "Total Overall Connection=" + str(self.connected_total) )
         
         
     def msgClb(self, msg):
@@ -187,22 +187,22 @@ class MyMqttEvents(Parseble):
     def __init__(self):
         super(self.__class__, self).__init__()
         self.registerDev = {}
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def register(self, iccid, clb):
-        self.log.debug("Registering device iccid "+ iccid)
+        self._log.debug("Registering device iccid "+ iccid)
         self.registerDev[iccid] = clb
     
     def unregister(self, iccid):
         del self.registerDev[iccid]
     
     def mqttHello(self, mqtMsgEvent):
-        self.log.debug("Hello message received")
+        self._log.debug("Hello message received")
         self.registerDev[mqtMsgEvent.iccid]()
     
     def mqttGoodbye(self, mqtMsgEvent):
         #action to be difened..!
-        self.log.debug("Goodby Will message received")
+        self._log.debug("Goodby Will message received")
         self.registerDev[mqtMsgEvent.iccid]()
     
     
@@ -210,10 +210,10 @@ class Devices():
         def __init__(self, mqttEvents):
             self.devices = []
             self.mqttEvents = mqttEvents
-            self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+            self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
         def addDevice(self, iccid, mosAd):
-            self.log.debug("Adding device iccid " + iccid)
+            self._log.debug("Adding device iccid " + iccid)
             dev = MqtDevice(iccid, mosAd, self.mqttEvents)
             self.devices.append(dev)
             return dev

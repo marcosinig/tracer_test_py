@@ -2,7 +2,10 @@
 Created on Feb 18, 2014
 
 todo:
-- implement all At / firmware errors
+
+-implement uart line obj
+-implement profiling events
+
 - implements ShellEvents on Uart!
 - use packages
 
@@ -13,21 +16,17 @@ todo:
 -parse info from the command line
 
 improvements:
-- uart has to stop thread when there is an error
 
 
 Basic Scenario:
-1) start logging an trace just the errors..
-2) errors has to be counted, have a report of the status (how many connession lost, ...)
 
-3) 
 
 
 Futuristic:
 - gui!
 
 NOT WORKING:
--write log in file.. (changed uart Observable)
+
 
 @author: I'm
 '''
@@ -47,8 +46,8 @@ UART_MAC = "/dev/cu.usbmodemimTrace1"
 
 LOG_FOLDER = "logs"              
 
-#logger = logging.getLogger(__name__)        
-#configureLog(logger)
+#_log = logging.getLogger(__name__)        
+#configureLog(_log)
 
     
 class SessionManager(object):
@@ -57,9 +56,11 @@ class SessionManager(object):
     """
     
     def __init__(self):
-        self.time = myTime()
+        self._myTime = myTime()
         #cerates logfile and logErrorfile            
-        self.logFile = LogFile(LOG_FOLDER, self.time)  
+        self.logFile = LogFile(LOG_FOLDER, self._myTime)  
+        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+    
           
         
 
@@ -69,12 +70,13 @@ class UartM(SessionManager):
     """
     
     def __init__(self):    
-        super(self.__class__, self).__init__()                                               
+        super(self.__class__, self).__init__()   
+        self._log.info("Called init ")
+                                                    
         self._uart = Uart(UartM.returnOsCom())    
-        self._events = ShellEvents()
-        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._events = ShellEvents()       
                 
-        self._uart.msubscribe(self.time.updTime)                
+        self._uart.msubscribe(self._myTime.updTime)                
         self._uart.msubscribe(self.logFile.printConsole)
         self._uart.msubscribe(self.logFile.fwLog)
         self._uart.msubscribe(self._events.callAllFunc)                                      
@@ -82,19 +84,19 @@ class UartM(SessionManager):
         self.fwCmd= FwCommands(self._uart)     
         
     def __del__(self):
-        self.logger.debug("Called del ")
+        self._log.info("Called del ")
         del self._uart
         del self._events
           
       
     def start(self):
         #start the uart thread
-        logger.info("Starting Uart parsing com " + self._uart.uart_port)
+        logger.info("Starting Uart parsing com " + self._uart._uart_port)
         self._uart.open_ser() 
         self._uart.start()
         
     def close(self):
-        self._uart.close_ser()
+        self._uart.close()
         self.logFile.closeLog()
         
     @staticmethod 
@@ -117,9 +119,9 @@ def startUartLog():
     
     sessMng.fwCmd.simBtns()
     
-    time.sleep(1)
+    #_myTime.sleep(1)
     
-    del sessMng
+    #del sessMng
     
     
     
@@ -132,15 +134,15 @@ class ParseLogFileM(SessionManager):
         super(self.__class__, self).__init__()
         self._file = ReadLogFile()           
         self._events = ShellEvents()
-        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         
-        #self._file.msubscribe(self.time.updTime)                
+        #self._file.msubscribe(self._myTime.updTime)                
         self._file.msubscribe(self.logFile.printConsole)
         self._file.msubscribe(self.logFile.fwLog)
         self._file.msubscribe(self._events.callAllFunc)                                      
                         
     def start(self, fileName):
-        self.logger.info("Starting Parsing");
+        self._log.info("Starting Parsing");
         self._file.open(fileName)
         self._file.start()
                                 
@@ -166,6 +168,6 @@ def startParseLogFile():
 sessMng = None    
 if __name__ == "__main__":
     logger.info("Starting Main");
-    #startUartLog()
+    startUartLog()
     #startParseLogFile()
     

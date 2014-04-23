@@ -56,58 +56,73 @@ class Parseble(object):
 def function_name():
     return sys._getframe().f_back.f_code.co_name
 
-class Uart(threading.Thread, Observable):
+
+class UartLine():
+    def __init__(self, timestamp, line):
+        self.line = line
+        self.timestamp = timestamp
+    
+    def __str__(self):
+        return  self.timestamp + "-" + self.line 
+        
+class Uart2(threading.Thread, Observable):
                 
-    def __init__(self, port):                
+    def __init__(self, port, myTime):                
         threading.Thread.__init__(self)
         Observable.__init__(self) 
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
+        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
         
-        self.serial_ref=None                
-        self.uart_port=port         
+        self._myTime = myTime
+        self._serial_ref=None                
+        self._uart_port=port         
         self._stop = threading.Event() 
         
     def __del__(self):
-        self.log.debug("Called del ")
+        self._log.debug("Called del ")
         self._stop.set()       
-        if self.serial_ref != None:
-            self.serial_ref.close()
+        if self._serial_ref != None:
+            self._serial_ref.close()
+    
+    def close(self):
+          self._log.debug("Called del ")
+          self._stop.set()       
+          if self._serial_ref != None:
+            self._serial_ref.close()
     
     def open_ser(self):
         try:
-            self.serial_ref = serial.Serial(self.uart_port , baudrate=115200)
+            self._serial_ref = serial.Serial(self._uart_port , baudrate=115200)
         except:
-            self.log.error("Error on opening port "+ self.uart_port) 
+            self._log.error("Error on opening port "+ self._uart_port) 
             self.stop()            
-            raise Exception("Error on opening port "+ self.uart_port);
+            raise Exception("Error on opening port "+ self._uart_port);
      
     def stop(self):
-        self.log.debug("Called Stop ")
+        self._log.debug("Called Stop ")
         self._stop.set()       
-        if self.serial_ref != None:
-            self.serial_ref.close()
+        if self._serial_ref != None:
+            self._serial_ref.close()
     
-    def write(self,str):
-        
-        if self.serial_ref == None:
-            raise Exception("Uart not open") 
-        
+    def write(self,str):        
+        if self._serial_ref == None:
+            raise Exception("Uart not open")         
         try:            
-            self.serial_ref.write(str + "\r\n")
+            self._serial_ref.write(str + "\r\n")
         except:
-            self.log.error( "Error on writing on port "+ self.uart_port) 
+            self._log.error( "Error on writing on port "+ self._uart_port) 
             self.stop()
-            raise Exception("Error on writing port "+ self.uart_port);
+            raise Exception("Error on writing port "+ self._uart_port);
     
-    def readlineCR(self):
+    def _readlineCR(self):
         rv = ""    
         while True:
-            #if (self.serial_ref.inWaiting() > 0) :
+            #if (self._serial_ref.inWaiting() > 0) :
             try:
-                ch = self.serial_ref.read()
+                ch = self._serial_ref.read()
             except:
-                self.log.error("Error on reading on port "+ self.uart_port) 
-                self.serial_ref.close()
+                self._log.error("Error on reading on port "+ self._uart_port) 
+                self._serial_ref.close()
+                raise Exception("Error on reading port "+ self._uart_port);
                     
             rv += ch
             if ch=='\n':
@@ -115,7 +130,74 @@ class Uart(threading.Thread, Observable):
     
     def run(self):
         while True:        
-            rcv = self.readlineCR()            
+            rcv = self._readlineCR()            
+            self.fire_action(UartLine(myTime.getTime(), rcv))
+
+class Uart(threading.Thread, Observable):
+                
+    def __init__(self, port):                
+        threading.Thread.__init__(self)
+        Observable.__init__(self) 
+        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
+        
+        self._serial_ref=None                
+        self._uart_port=port         
+        self._stop = threading.Event() 
+        
+    def __del__(self):
+        self._log.debug("Called del ")
+        self._stop.set()       
+        if self._serial_ref != None:
+            self._serial_ref.close()
+    
+    def close(self):
+          self._log.debug("Called del ")
+          self._stop.set()       
+          if self._serial_ref != None:
+            self._serial_ref.close()
+    
+    def open_ser(self):
+        try:
+            self._serial_ref = serial.Serial(self._uart_port , baudrate=115200)
+        except:
+            self._log.error("Error on opening port "+ self._uart_port) 
+            self.stop()            
+            raise Exception("Error on opening port "+ self._uart_port);
+     
+    def stop(self):
+        self._log.debug("Called Stop ")
+        self._stop.set()       
+        if self._serial_ref != None:
+            self._serial_ref.close()
+    
+    def write(self,str):        
+        if self._serial_ref == None:
+            raise Exception("Uart not open")         
+        try:            
+            self._serial_ref.write(str + "\r\n")
+        except:
+            self._log.error( "Error on writing on port "+ self._uart_port) 
+            self.stop()
+            raise Exception("Error on writing port "+ self._uart_port);
+    
+    def _readlineCR(self):
+        rv = ""    
+        while True:
+            #if (self._serial_ref.inWaiting() > 0) :
+            try:
+                ch = self._serial_ref.read()
+            except:
+                self._log.error("Error on reading on port "+ self._uart_port) 
+                self._serial_ref.close()
+                raise Exception("Error on reading port "+ self._uart_port);
+                    
+            rv += ch
+            if ch=='\n':
+                return rv
+    
+    def run(self):
+        while True:        
+            rcv = self._readlineCR()            
             self.fire_action(rcv)
 
 
@@ -126,47 +208,42 @@ class LogFile():
         sys.stdout.write(str)
         sys.stdout.flush()
     
-    #FWLOG = "FWLOG"
-    #EVLOG = "EVLOG"
-    #writeLog
-
-    
     def __init__(self, folder, time):        
-        self.time = time      
+        self._myTime = time      
                 
         location = os.getcwd()  +  "/" + folder
         if not os.path.exists(location):
             os.makedirs(location)  
         
-        #open lof file
-        self.logfile  = open(os.path.join(location, 'log_' + self.time.getLogStr()  +'.txt'), 'w')            
-        self.logfile.write("\n")
-        self.logfile.flush()
+        #open _log file
+        self._logfile  = open(os.path.join(location, 'log_' + self._myTime.getLogStr()  +'.txt'), 'w')            
+        self._logfile.write("\n")
+        self._logfile.flush()
         
         #open Events file
-        self.logEvent  = open(os.path.join(location, 'logEvents_' + self.time.getLogStr()  +'.txt'), 'w')            
-        self.logEvent.write("\n")
-        self.logEvent.flush()
+        self._logEvent  = open(os.path.join(location, 'logEvents_' + self._myTime.getLogStr()  +'.txt'), 'w')            
+        self._logEvent.write("\n")
+        self._logEvent.flush()
         
     def logEv(self, type, str):
         self.LogType[type](str)
      
     def fwLog(self,str):
         #append in teh logEv file                              
-        self.logfile.write(self.time.getTime() + " " + str + "\n")
-        self.logfile.flush()
+        self._logfile.write(self._myTime.getTime() + " " + str + "\n")
+        self._logfile.flush()
         
     def evLog(self,str):
         #append in teh logEv file                              
-        self.logEvent.write(self.time.getTime() + ">> " + str + "\n")
-        self.logEvent.flush()
+        self._logEvent.write(self._myTime.getTime() + ">> " + str + "\n")
+        self._logEvent.flush()
         
         self.fwLog(">> " + str)
                 
     def closeLog(self):
         #close the logEv file
-        self.logfile.close()
-        self.logEvent.close()
+        self._logfile.close()
+        self._logEvent.close()
         
     #LogType = { FWLOG: _fwLog, "EVLOG" : _evLog }
 
@@ -218,7 +295,7 @@ class StateMachine(object):
         self.handlers = {}
         self.startState = None
         self.handler = None
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
         
     def add_state(self, name, handler):
@@ -239,7 +316,7 @@ class StateMachine(object):
     def run(self, cargo):            
         newState = self.handler(cargo)
         if newState != None:
-            self.logger.debug( "new State: " + newState )
+            self._log.debug( "new State: " + newState )
             self.handler = self.handlers[newState.upper()]
             self.currentState = newState   
 
@@ -247,13 +324,13 @@ def configureLog(logger):
     
     #TODO: confguration is wrong,.,
     
-    # create logger 
-    #logger = logging.getLogger(__name__)
+    # create _log 
+    #_log = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     # create file handler which logs even debug messages
-    fh = logging.FileHandler('logger.txt')
+    fh = logging.FileHandler('_log.txt')
     fh.setLevel(logging.DEBUG)
-    # create console handler with a higher log level
+    # create console handler with a higher _log level
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.DEBUG)
     # create formatter and add it to the handlers
@@ -261,6 +338,6 @@ def configureLog(logger):
     #formatter =  logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
-    # add the handlers to the logger
+    # add the handlers to the _log
     logger.addHandler(fh)
     logger.addHandler(ch)
