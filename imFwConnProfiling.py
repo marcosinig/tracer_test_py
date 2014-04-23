@@ -77,16 +77,18 @@ class regHandlerConn(Parseble):
     def evAtHostEEFiles(self, evt):
         if (self.__class__.__log):
             self.logger.debug( function_name() )   
-        if self.stateM == "Connected" or self.stateM == "Disconnected":
+        if self.stateM == "Connected".upper() or self.stateM == "Disconnected".upper():
             self.logEv(function_name() + str(evt))
             self.logger.error( function_name() + str(evt))        
-        self._clb(evt)  
+        #self._clb(evt)  
     
     #CSQ - not used..
     def evAtCsq(self, evt):
         if (self.__class__.__log):
-            self.logger.debug( function_name() )             
-        self._clb(evt)
+            self.logger.debug( function_name() )  
+        #if self.stateM == "Connected".upper():
+        #    pass           
+        #self._clb(evt)
     
     #reconnect procedure, NOT HANDLED yet    
     def evFwSystemReconnect(self, evt):
@@ -125,15 +127,12 @@ class FwConnStateMachine(StateMachine):
             newState = "On"
             self.actionGoOnState()
         
-        if newState != None:
-            self.logger.debug( "new State: " + newState )
         return newState    
     
     def on_state(self, ev):
         newState = None
         #self.logger.debug( function_name()) 
                 
-        
         if ev.event=="evAtGetIccid":
             self.iccid = ev.str1
         if ev.event == "evAtSgactAns":
@@ -141,8 +140,7 @@ class FwConnStateMachine(StateMachine):
             newState = "Connected"
             self.actionGoToConntected()
         
-        if newState != None:
-            self.logger.debug( "new State: " + newState )
+        
         return newState
     
     def connected_state(self, ev):
@@ -157,20 +155,16 @@ class FwConnStateMachine(StateMachine):
         #if ev.event=="evFwSwitchOff":
         #    newState = "off"    
         
-        if newState != None:
-            self.logger.debug( "new State: " + newState )
+     
         return newState
 
     def disconnected_state(self, ev):
         newState = None
         #self.logger.debug( function_name())               
         
-        
         #if ev.event=="evFwSwitchOff":
         #    newState = "off"
         
-        if newState != None:
-            self.logger.debug( "new State: " + newState )
         return newState
 
 

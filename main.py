@@ -147,10 +147,10 @@ class ParseLogFileM(SessionManager):
     def closeSession(self):        
         self.ReadLogFile.closeLog()    
         
-def startParseLogFile():            
-    logger.info("Starting ParseLogFile file: " + logPath);
-    
+def startParseLogFile():                
     logPath =  os.getcwd()  + "//fw_logs//log_13_03_multiple_send.txt"
+    logger.info("Starting ParseLogFile file: " + logPath);
+
     
     global sessMng    
     sessMng = ParseLogFileM()

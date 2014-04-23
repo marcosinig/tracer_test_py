@@ -218,6 +218,8 @@ class StateMachine(object):
         self.handlers = {}
         self.startState = None
         self.handler = None
+        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+
         
     def add_state(self, name, handler):
         name = name.upper()
@@ -237,6 +239,7 @@ class StateMachine(object):
     def run(self, cargo):            
         newState = self.handler(cargo)
         if newState != None:
+            self.logger.debug( "new State: " + newState )
             self.handler = self.handlers[newState.upper()]
             self.currentState = newState   
 
