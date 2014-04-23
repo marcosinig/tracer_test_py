@@ -121,7 +121,6 @@ class FwConnStateMachine(StateMachine):
         
     def off_state(self,ev):
         newState = None
-        self.logger.debug( function_name()) 
         
         if ev.event =="evFwSwitchOn":            
             newState = "On"
@@ -131,7 +130,6 @@ class FwConnStateMachine(StateMachine):
     
     def on_state(self, ev):
         newState = None
-        #self.logger.debug( function_name()) 
                 
         if ev.event=="evAtGetIccid":
             self.iccid = ev.str1
@@ -145,7 +143,6 @@ class FwConnStateMachine(StateMachine):
     
     def connected_state(self, ev):
         newState = None
-        #self.logger.debug( function_name()) 
                         
         
         if ev.event=="evAtNoCarrier" or ev.event=="evFwOffline" or  ev.event=="evFwRecconnetInterval":
@@ -160,13 +157,11 @@ class FwConnStateMachine(StateMachine):
 
     def disconnected_state(self, ev):
         newState = None
-        #self.logger.debug( function_name())               
         
         #if ev.event=="evFwSwitchOff":
         #    newState = "off"
         
         return newState
-
 
     def stuck_state(self, ev):
         pass

@@ -218,6 +218,7 @@ class StateMachine(object):
         self.handlers = {}
         self.startState = None
         self.handler = None
+        self.currentState = None
         self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
         
@@ -236,7 +237,8 @@ class StateMachine(object):
         except:
             raise Exception("must call .set_start() before .run()")
 
-    def run(self, cargo):            
+    def run(self, cargo):
+        self.logger.debug( "Hendling Ev in State: " + self.currentState )            
         newState = self.handler(cargo)
         if newState != None:
             self.logger.debug( "new State: " + newState )
