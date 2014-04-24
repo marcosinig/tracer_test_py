@@ -301,12 +301,7 @@ class StateMachine(object):
         self.handlers = {}
         self.startState = None
         self.handler = None
-<<<<<<< HEAD
         self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-=======
-        self.currentState = None
-        self.log = logging.getLogger(__name__ + "." + self.__class__.__name__)
->>>>>>> branch 'master' of https://github.com/marcosinig/tracer_test_py.git
 
         
     def add_state(self, name, handler):
@@ -324,8 +319,7 @@ class StateMachine(object):
         except:
             raise Exception("must call .set_start() before .run()")
 
-    def run(self, cargo):
-        self.logger.debug( "Hendling Ev in State: " + self.currentState )            
+    def run(self, cargo):            
         newState = self.handler(cargo)
         if newState != None:
             self._log.debug( "new State: " + newState )

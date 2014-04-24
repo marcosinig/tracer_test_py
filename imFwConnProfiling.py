@@ -299,41 +299,14 @@ class ConnProfiling():
 class FwConnStateMachine(StateMachine):
         
     def off_state(self,ev):
-<<<<<<< HEAD
         newState = None        
         self._log.info(function_name())
-=======
-        newState = None
->>>>>>> branch 'master' of https://github.com/marcosinig/tracer_test_py.git
         
                
         if ev.event == "evFwSysGsmOnFailed":
             pass
         
-<<<<<<< HEAD
         if ev.event == "evFwSysUserOn":
-=======
-        return newState    
-    
-    def on_state(self, ev):
-        newState = None
-                
-        if ev.event=="evAtGetIccid":
-            self.iccid = ev.str1
-        if ev.event == "evAtSgactAns":
-            self.ip =  ev.str1
-            newState = "Connected"
-            self.actionGoToConntected()
-        
-        
-        return newState
-    
-    def connected_state(self, ev):
-        newState = None
-                        
-        
-        if ev.event=="evAtNoCarrier" or ev.event=="evFwOffline" or  ev.event=="evFwRecconnetInterval":
->>>>>>> branch 'master' of https://github.com/marcosinig/tracer_test_py.git
             newState = "disconnected"
             #self.rcv_evFwSwitchOn = True            
 
@@ -349,10 +322,7 @@ class FwConnStateMachine(StateMachine):
 
     def disconnected_state(self, ev):
         newState = None
-<<<<<<< HEAD
         self._log.info(function_name())
-=======
->>>>>>> branch 'master' of https://github.com/marcosinig/tracer_test_py.git
         
         #this should be handled in sys setup state
         if ev.event== "evFwSysGpsStartupFailed" or ev.event=="evFwSysNvmFailed" or ev.event=="evFwSysStartupFailed":  
@@ -426,7 +396,6 @@ class FwConnStateMachine(StateMachine):
             newState = "try_mqttConn"   
         
         return newState
-<<<<<<< HEAD
 
     def try_mqttConn_state(self, ev):                 
         newState = None
@@ -469,8 +438,6 @@ class FwConnStateMachine(StateMachine):
             self.init_off()            
                             
         return newState
-=======
->>>>>>> branch 'master' of https://github.com/marcosinig/tracer_test_py.git
 
     def stuck_state(self, ev):
         #TODO: implement this state when fw is stuck
