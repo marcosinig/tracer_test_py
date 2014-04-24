@@ -130,7 +130,7 @@ class MqtDevice():
         self._log.debug("Create new device")
 
         self.gprs_on_ntimes=0
-        self.connected_session=0
+        self.online_session=0
         self.connected_total=0
         
     
@@ -154,13 +154,13 @@ class MqtDevice():
     def _online(self):
         self._log.info("Received Hello, Online")
         self.gprs_on_ntimes += 1
-        self.connected_session = myTime.getTimestamp()
+        self.online_session = myTime.getTimestamp()
         
     def _offline(self):
         #HAS TO BE REPLACED BY AN EV INTERFACE (for grphics)
         #timevents is not logged!
         self._log.info("Receved Bye, Offline")
-        minutes_session = myTime.getDiffNowMin( self.connected_session  )
+        minutes_session = myTime.getDiffNowMin( self.online_session  )
         self.connected_total += minutes_session
        
         self._log.info( "Total minutes Session Connection=" + str(minutes_session) )

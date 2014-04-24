@@ -206,14 +206,21 @@ class regHandlerConn(Parseble):
         self._clb(evt)  
         
 class ConnProfileEv():
-    def __init__(self, timestamp, msg, event):
+    def __init__(self, timestamp, msg, obj):
+        #obj has to implement to string
+        
         self.timestamp = timestamp
         self.msg = msg
-        self.event = event
+        self.obj = obj
     
     def __str__(self):
-        return self.timestamp + "-" + self.msg + "-" + self.event
+        return self.timestamp + "-" + self.msg + "-" + self.obj
         
+class ProfReport():
+    #TODO add dynamiclly data field
+    def __init__(self, report):
+        self.report = report
+    
 
 class ConnProfiling():
     
@@ -226,55 +233,116 @@ class ConnProfiling():
         self.iccid = None
         self.ip = None
         
-        self.on_session = None
-        self.on_total = 0
+        #total on of the device (Connected and disconnected)
+        self.sw_on_session = None
+        self.sw_on_total = 0
         
         self.gprs_on_ntimes=0        
-        self.disconnected_ntimes=0
+        self.disconnected_ntimes = -1
         
         self.connected_total = 0
-        self.connected_session=0
+        self.online_session=0
     
     
-    def go_off(self, ev):
-        self.on_total = myTime.getDiffNowMin( self.on_session  )
-        
+    def go_off(self, ev):        
+        self.sw_on_total = myTime.getDiffNowMin( self.sw_on_session  )        
+        #print sw_on_total and sw_on_session
+        pass
+    
         profEv = ConnProfileEv(myTime.getTimestamp(), "Switching off", ev)
         self.attachEv(profEv)
     
+        self.sw_on_session = None
+    
+                                    
+    def go_switched_on(self, ev):        
+        self.sw_on_session = myTime.getTimestamp()        
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Switched On", ev)
+        self.attachEv(profEv)
+    
+    
     def go_disconnected(self, ev):    
-        
-        if self.on_session == 0:
-            #it now on, tarck it
-            self.on_session = myTime.getTimestamp()        
-            profEv = ConnProfileEv(myTime.getTimestamp(), "Switched On", ev)
-            self.attachEv(profEv)
-            
-        minutes_session = myTime.getDiffNowMin( self.connected_session  )
-        self.connected_total += minutes_session 
+        minutes_on_line_session = myTime.getDiffNowMin( self.online_session  )
+        self.connected_total += minutes_on_line_session 
         self.disconnected_ntimes += 1 
         
-        profEv = ConnProfileEv(myTime.getTimestamp(), "Disconnected data", ev)
-        self.attachEv(profEv)
+        if self.disconnected_ntimes == 1 :
+            #print minutes_on_line_session connected_total disconnected_ntimes
+            profEv = ConnProfileEv(myTime.getTimestamp(), "State Disconnected", ev)
+            self.attachEv(profEv)
         
-        #THIS DATA HAS TO BE PRINTED ONLY IF WE WERE CONNECTED...!
-        self._log.info( "Total minutes Session Connection=" + str(minutes_session) )
-        self._log.info( "Total Overall Connection=" + str(self.connected_total) )  
+            report = ""
+            #TODO: write report
+            self.attachEv( ProfReport(report) )
         
-        self.logEv("Total minutes Session Connection=" + str(minutes_session))
-        self.logEv("Total Overall Connection=" + str(self.connected_total))     
+            #THIS DATA HAS TO BE PRINTED ONLY IF WE WERE CONNECTED...!
+            self._log.info( "Total minutes Session Connection=" + str(minutes_on_line_session) )
+            self._log.info( "Total Overall Connection=" + str(self.connected_total) )  
+        
+            self.logEv("Total minutes Session Connection=" + str(minutes_on_line_session))
+            self.logEv("Total Overall Connection=" + str(self.connected_total))     
+            pass
+        
+        self.online_session = None 
+        
+    def exit_disconnected(self):
+        
+        pass                                                                 
         
     def go_try_gprs(self, ev):
+        
+        #num timnes context activation failed
+        #num imes context activation succed
+        
         pass
     
-    
-    def go_gprs_on(self, ev):
-        self.gprs_on_ntimes += 1 
-        self._log.info("Connected times " + str(self.gprs_on_ntimes)) 
-        self.connected_session = myTime.getTimestamp()
+    def exit_try_gprs(self, ev):
         
-        profEv = ConnProfileEv(myTime.getTimestamp(), "Connected Data", ev)
-        self.attachEv(profEv)
+        pass
+    
+    def go_try_provosioning(self, ec):
+        
+        #num http request
+        #num http succed
+        
+        pass
+    
+    def exit_provisioning(self):
+        pass
+    
+    def go_try_ssl_(self, ec):
+        
+        #num ssl socket try
+        #num socket failed
+        
+        pass
+    
+    def exit_ssl(self):
+        pass
+
+    def go_try_mqttConn(self,ec):
+                
+        pass
+    
+    def exit_mqttConn(self):
+        
+        pass
+    
+    def go_on_line(self, ec):
+        
+        
+        pass
+    
+    def exit_no_line(self):
+        pass
+    
+    #def go_gprs_on(self, ev):
+    #    self.gprs_on_ntimes += 1 
+    #    self._log.info("Connected times " + str(self.gprs_on_ntimes)) 
+    #    self.online_session = myTime.getTimestamp()
+        
+    #    profEv = ConnProfileEv(myTime.getTimestamp(), "Connected Data", ev)
+    #    self.attachEv(profEv)
     
     def ev_cme_error(self, state, ev):
         self._log.info("Cme Error in state " + state + "ev: " + ev)
