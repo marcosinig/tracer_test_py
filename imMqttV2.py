@@ -129,7 +129,7 @@ class MqtDevice():
 
         self._log.debug("Create new device")
 
-        self.connected_ntimes=0
+        self.gprs_on_ntimes=0
         self.connected_session=0
         self.connected_total=0
         
@@ -153,7 +153,7 @@ class MqtDevice():
         
     def _online(self):
         self._log.info("Received Hello, Online")
-        self.connected_ntimes += 1
+        self.gprs_on_ntimes += 1
         self.connected_session = myTime.getTimestamp()
         
     def _offline(self):

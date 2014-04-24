@@ -3,22 +3,15 @@ Created on Feb 18, 2014
 
 todo:
 
--implement uart line obj
--implement profiling events
-
-- implements ShellEvents on Uart!
-- use packages
-
-- send a command and receive answer in a timeout value
-   - the answer has to be evaluated
-        -in base of the answe, take some actions
-        
--parse info from the command line
+-file path in base of OS
+- ospatch not working in windows!!!!
+-DO NOT USE IMPORT ALL
+       
 
 improvements:
 
 
-Basic Scenario:
+
 
 
 
@@ -26,7 +19,7 @@ Futuristic:
 - gui!
 
 NOT WORKING:
-
+-write log in file.. (changed uart Observable)
 
 @author: I'm
 '''
@@ -56,11 +49,9 @@ class SessionManager(object):
     """
     
     def __init__(self):
-        self._myTime = myTime()
+        self.time = myTime()
         #cerates logfile and logErrorfile            
-        self.logFile = LogFile(LOG_FOLDER, self._myTime)  
-        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-    
+        self.logFile = LogFile(LOG_FOLDER, self.time)  
           
         
 
@@ -70,13 +61,12 @@ class UartM(SessionManager):
     """
     
     def __init__(self):    
-        super(self.__class__, self).__init__()   
-        self._log.info("Called init ")
-                                                    
+        super(self.__class__, self).__init__()                                               
         self._uart = Uart(UartM.returnOsCom())    
-        self._events = ShellEvents()       
+        self._events = ShellEvents()
+        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
                 
-        self._uart.msubscribe(self._myTime.updTime)                
+        self._uart.msubscribe(self.time.updTime)                
         self._uart.msubscribe(self.logFile.printConsole)
         self._uart.msubscribe(self.logFile.fwLog)
         self._uart.msubscribe(self._events.callAllFunc)                                      
@@ -84,19 +74,19 @@ class UartM(SessionManager):
         self.fwCmd= FwCommands(self._uart)     
         
     def __del__(self):
-        self._log.info("Called del ")
+        self._log.debug("Called del ")
         del self._uart
         del self._events
           
       
     def start(self):
         #start the uart thread
-        logger.info("Starting Uart parsing com " + self._uart._uart_port)
+        logger.info("Starting Uart parsing com " + self._uart.uart_port)
         self._uart.open_ser() 
         self._uart.start()
         
     def close(self):
-        self._uart.close()
+        self._uart.close_ser()
         self.logFile.closeLog()
         
     @staticmethod 
@@ -109,7 +99,7 @@ class UartM(SessionManager):
 def startUartLog():
     #just switch on the device and log all the errors 
     global sessMng        
-    sessMng = UartM()     
+    sessMng = UartM()         
     sessMng._stateMac = FwConnStateMachine(sessMng.logFile.evLog)
     sessMng._events.msubscribe(sessMng._stateMac.evHand.callMatchFuncName)
     
@@ -119,9 +109,9 @@ def startUartLog():
     
     sessMng.fwCmd.simBtns()
     
-    #_myTime.sleep(1)
+    time.sleep(1)
     
-    #del sessMng
+    del sessMng
     
     
     
@@ -136,7 +126,7 @@ class ParseLogFileM(SessionManager):
         self._events = ShellEvents()
         self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         
-        #self._file.msubscribe(self._myTime.updTime)                
+        #self._file.msubscribe(self.time.updTime)                
         self._file.msubscribe(self.logFile.printConsole)
         self._file.msubscribe(self.logFile.fwLog)
         self._file.msubscribe(self._events.callAllFunc)                                      
@@ -150,15 +140,17 @@ class ParseLogFileM(SessionManager):
         self.ReadLogFile.closeLog()    
         
 def startParseLogFile():                
-    logPath =  os.getcwd()  + "//fw_logs//log_13_03_multiple_send.txt"
+    logPath =  os.path.dirname(os.path.realpath(__file__))  
+    logPath = logPath + "\\fw_logs\\log_13_03_multiple_send.txt"
+    #logPath = "C:\\Users\\i'm Developer\\Documents\\log_imhere\\connction_problem\\log_sos_2_23_04.txt"
     logger.info("Starting ParseLogFile file: " + logPath);
 
     
     global sessMng    
     sessMng = ParseLogFileM()
     
-    #self._stats  = regHandlerConn()
-    sessMng.stMachine = FwConnStateMachine(sessMng.logFile.evLog)
+    sessMng.connProf = ConnProfiling(sessMng.logFile.evLog)
+    sessMng.stMachine = FwConnStateMachine(sessMng.connProf, sessMng.logFile.evLog)
                      
     sessMng._events.msubscribe(sessMng.stMachine.evHand.callMatchFuncName)
     
@@ -168,6 +160,6 @@ def startParseLogFile():
 sessMng = None    
 if __name__ == "__main__":
     logger.info("Starting Main");
-    startUartLog()
-    #startParseLogFile()
+    #startUartLog()
+    startParseLogFile()
     

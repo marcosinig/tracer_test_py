@@ -41,8 +41,12 @@ class Parseble(object):
         chiama tutte le funzioni della classe che eredita eccetto ...
         """
         for name, method in self.__class__.__dict__.iteritems():
-            if callable(method) and name != "__init__" and name != "__module__" and name != "__doc__" and name != "callAllFunc":                
-                method(self,obj)
+            if callable(method) and name != "__init__" and name != "__module__" and name != "__doc__" and name != "callAllFunc":                                
+                if  method(self,obj) == True:
+                    break
+                                
+                #TODO: HAS TO BE OPTIMIZED!!!!!!!!!
+                #caller has to retun TRUE and brak it.
     
     def callMatchFuncName(self, obj):
         """
@@ -51,6 +55,7 @@ class Parseble(object):
         for name, method in self.__class__.__dict__.iteritems():
             if name == obj.event:
                 method(self,obj)
+                break
                
 
 def function_name():
@@ -211,7 +216,7 @@ class LogFile():
     def __init__(self, folder, time):        
         self._myTime = time      
                 
-        location = os.getcwd()  +  "/" + folder
+        location =os.path.dirname(os.path.realpath(__file__))  +  "/" + folder
         if not os.path.exists(location):
             os.makedirs(location)  
         
@@ -254,18 +259,19 @@ class ReadLogFile(Observable):
     """
     def __init__(self):
         super(self.__class__, self).__init__()
+        self._file = None
                 
     def open(self,filename):
         if not os.path.exists(filename):                    
             print "Filename does no exists " + filename
             sys.exit()
         try:
-            self.f = open(filename, 'r');
+            self._file = open(filename, 'r');
         except IOError:
             print('cannot open file', filename)
     
     def start(self):
-        for line in self.f:
+        for line in self._file:
             self.fire_action(line)
             
 class myTime():     
