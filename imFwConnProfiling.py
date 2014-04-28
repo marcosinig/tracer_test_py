@@ -208,7 +208,7 @@ class regHandlerConn(Parseble):
         self._clb(evt)  
         
 class ConnProfileEv():
-    def __init__(self, timestamp, msg, ev, status_p = None, error_ev = None):
+    def __init__(self, timestamp, msg, ev, status_p = None, errors_ev_list = None):
         #obj has to implement to string
         
         self.timestamp = timestamp
@@ -217,7 +217,7 @@ class ConnProfileEv():
         #status report
         self.status_p = status_p
         #list of all the possible errors
-        self.error_ev = error_ev
+        self.error_ev_list = errors_ev_list
     
     def __str__(self):
         #TODO write in base of what is present in nice way
@@ -258,7 +258,7 @@ class ConnProfiling():
         #list of all the events reported by the profile class
         self.eventsProf = []
         #list of all the errors, it has to be empty everytime a state is exited
-        self.eventsError = []
+        self.eventsException = []
         
         self.iccid = None
         self.ip = None
@@ -293,8 +293,8 @@ class ConnProfiling():
                                     
     def off_exit(self, ev):
         self._log.info(function_name())         
-        self.on_session_t = myTime.getTimestamp()        
-        profEv = ConnProfileEv(myTime.getTimestamp(), "Switched On", ev)
+        self.on_session_t = myTime.getTimestamp()                
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Switched On", copy.deepcopy(self.disconnected_p), self.getEventsErr())
         self.attachEv(profEv)
     
     
@@ -314,7 +314,7 @@ class ConnProfiling():
         self._log.info(function_name())   
         
         self.disconnected_p.exit()
-        profEv = ConnProfileEv(myTime.getTimestamp(), "Disconnected Exit", ev, copy.deepcopy(self.disconnected_p))
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Disconnected Exit", ev, copy.deepcopy(self.disconnected_p), self.getEventsErr())
         self.attachEv(profEv) 
         
         self.online_p.enter()
@@ -346,7 +346,7 @@ class ConnProfiling():
         self.gprs_p.exit()
         #self._log.info(str (self.gprs_p) )
         
-        profEv = ConnProfileEv(myTime.getTimestamp(), "Gprs exit", ev, copy.deepcopy(self.gprs_p)) 
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Gprs exit", ev, copy.deepcopy(self.gprs_p), self.getEventsErr()) 
         self.attachEv(profEv)
          
     def provisioning_enter(self, ev):
@@ -363,7 +363,7 @@ class ConnProfiling():
         self.provisioning_p.exit()
         self._log.info(str (self.provisioning_p) )
         
-        profEv = ConnProfileEv(myTime.getTimestamp(), "Provisioning exit", ev, copy.deepcopy(self.provisioning_p)) 
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Provisioning exit", ev, copy.deepcopy(self.provisioning_p), self.getEventsErr()) 
         self.attachEv(profEv)
             
     def ssl_enter(self, ev):
@@ -380,7 +380,7 @@ class ConnProfiling():
         self.ssl_p.exit()
         self._log.info(str (self.ssl_p) )
         
-        profEv = ConnProfileEv(myTime.getTimestamp(), "Ssl exit", ev, copy.deepcopy(self.ssl_p)) 
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Ssl exit", ev, copy.deepcopy(self.ssl_p), self.getEventsErr()) 
         self.attachEv(profEv)
     
     def mqttConn_enter(self, ev):
@@ -397,22 +397,42 @@ class ConnProfiling():
         self.mqtt_p.exit()
         self._log.info(str (self.mqtt_p) )
         
-        profEv = ConnProfileEv(myTime.getTimestamp(), "Mqtt exit", ev, copy.deepcopy(self.mqtt_p)) 
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Mqtt exit", ev, copy.deepcopy(self.mqtt_p), self.getEventsErr()) 
+        #print profEv !!!!!!!! 
         self.attachEv(profEv) 
             
-    def ev_cme_error(self, state, ev):
-        self._log.info("Cme Error in state " + state + "ev: " + ev)
+    def attachException(self, ev):
+        self._log.info(function_name())
+        #self._log.info(ev.getSource() +": Error in state " + state + "ev: " + ev)
+        
+        profEv = ConnProfileEv(myTime.getTimestamp(), ev.getSource() +" "+ev.getExceptionType(), ev,  errors_ev_list = self.getEventsErr() ) 
+        self.attachEvExceptions(profEv) 
                                 
     def set_iccid(self, iccid):
         self.iccid=iccid
     def set_ip(self, ip):
         self.ip = ip
+        
     def attachEv(self, ev):
         self.eventsProf.append(ev)  
         self._log.info(ev)
-    
     def printEvents(self):
+        
         pass
+    def getEvents(self):
+        #not used yet
+        return copy.deepcopy(self.eventsProf)
+        pass
+    
+    def attachEvExceptions(self, ev):
+        self.eventsException.append(ev)  
+        self._log.info(ev)   
+    def getEventsErr(self):
+        #removes all the event, should change name???
+        temp = copy.deepcopy(self.eventsException)
+        del self.eventsException
+        self.eventsException = []
+        return temp        
     
     def printReport(self):
         pass
@@ -474,15 +494,15 @@ class Gprs_state(StateFath):
         #if event.event == "evAtSgactAns":
         #    self.connProf.set_ip(event.str1)
         
-        if event.event == "evAtCmeError":
-            self.connProf.ev_cme_error()
+        if event.isExcepton():
+            #log the exceptions
+            self.connProf.attachException(event)
         
+
         #WARN: Should move on with the evAtSgactAns!
         if event.event == "evAtQueryProvisioning":  
             newState = "Provosioning_state" 
         
-        if event.event == "evFwGprsActFailed":
-            pass
         
         if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state" 
@@ -496,11 +516,9 @@ class Provosioning_state(StateFath):
     def processEv(self, event):
         newState = None
 
-        if event.event == "evAtCmeError":
-            self.connProf.ev_cme_error()
-                                    
-        if event.event == "evFwProvisioningFailed":
-            pass         
+        if event.isExcepton():
+            #log the exceptions
+            self.connProf.attachException(event)       
         
         if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state" 
@@ -518,11 +536,9 @@ class Ssl_state(StateFath):
     def processEv(self, event):
         newState = None
 
-        if event.event == "evAtCmeError":
-            self.connProf.ev_cme_error()
-                              
-        if event.event == "evFwSystemTlsFailed":
-            pass
+        if event.isExcepton():
+            #log the exceptions
+            self.connProf.attachException(event)
         
         if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state" 
@@ -539,15 +555,10 @@ class MqttConn_state(StateFath):
     def processEv(self, event):
         newState = None
 
-        if event.event == "evAtCmeError":
-            self.connProf.ev_cme_error()
-                    
-        if event.event == "evFwMqttConnectFailed":
-            pass 
+        if event.isExcepton():
+            #log the exceptions
+            self.connProf.attachException(event)
 
-        if event.event == "evFwMqttPubFailed":
-            #raise error
-            pass
         
         if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state"        
@@ -565,12 +576,9 @@ class Online_state(StateFath):
     def processEv(self, event):
         newState = None
 
-        if event.event == "evAtCmeError":
-            self.connProf.ev_cme_error()
-
-        if event.event == "evFwMqttPubFailed" or event.event == "evFwMqttPIngFailed":
-            #raise error
-            pass 
+        if event.isExcepton():
+            #log the exceptions
+            self.connProf.attachException(event)
                     
         if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state"

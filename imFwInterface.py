@@ -60,6 +60,38 @@ class EventMsg():
         self.line=line
         self.event=event
         self.str1 = str1
+    
+    def isErrorEvent(self):
+        if self.event[0:-5] == "Error":
+            return True
+        return False
+    
+    def isFaultEvent(self):
+        if self.event[0:-6] == "Failed":
+            return True
+        return False
+    
+    def isExcepton(self):
+        if self.isFaultEvent() or self.isErrorEvent():
+            return True
+        return False
+    
+    def getExceptionType(self):
+        #return xxxxxXXXXXX
+        #evAtCmeError -> At
+        if  self.isFaultEvent():
+                return "Failed"
+        if  self.isErrorEvent():
+                return "Error"
+        
+        
+    
+    def getSource(self):
+        #return xxXXxxx
+        #evAtCmeError -> At
+        return  self.event[2:5]
+
+    
         
     def __str__(self):
         return "Event= " + self.event + " line= " + self.line 
