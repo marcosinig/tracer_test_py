@@ -296,7 +296,7 @@ class myTime():
         self.datenow = datetime.datetime.now().strftime("%H:%M:%S.%f")   
         
 
-class StateMachine(object):
+class OldStateMachine(object):
     def __init__(self):
         self.handlers = {}
         self.startState = None
@@ -331,7 +331,7 @@ def configureLog(logger):
     #TODO: confguration is wrong,.,
     
     # create _log 
-    #_log = logging.getLogger(__name__)
+    #logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     # create file handler which logs even debug messages
     fh = logging.FileHandler('_log.txt')

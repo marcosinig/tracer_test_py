@@ -23,6 +23,7 @@ Improvements:
 
 from imUtils  import *
 from imFwInterface import *
+from imStateMachine import *
 import logging
 
 #SHOULD NOT BE USED
@@ -233,41 +234,46 @@ class ConnProfiling():
         self.iccid = None
         self.ip = None
         
-        #total on of the device (Connected and disconnected)
+        #statistic on device
         self.sw_on_session = None
         self.sw_on_total = 0
         
-        self.gprs_on_ntimes=0        
+        #startistics disconnected
         self.disconnected_ntimes = -1
         
-        self.connected_total = 0
-        self.online_session=0
+        #statistics online
+        self.online_ntimes=0 
+        self.online_total = 0
+        self.online_session = None
     
     
-    def go_off(self, ev):        
-        self.sw_on_total = myTime.getDiffNowMin( self.sw_on_session  )        
-        #print sw_on_total and sw_on_session
-        pass
+    def off_enter(self, ev): 
+        self._log.info(function_name())
+        
+        if self.sw_on_session != None:
+            self.sw_on_total = myTime.getDiffNowMin( self.sw_on_session  )        
+            #print sw_on_total and sw_on_session
+            pass
+            profEv = ConnProfileEv(myTime.getTimestamp(), "Switching off", ev)
+            self.attachEv(profEv)
     
-        profEv = ConnProfileEv(myTime.getTimestamp(), "Switching off", ev)
-        self.attachEv(profEv)
-    
-        self.sw_on_session = None
+            self.sw_on_session = None
     
                                     
-    def go_switched_on(self, ev):        
+    def off_exit(self, ev):
+        self._log.info(function_name())         
         self.sw_on_session = myTime.getTimestamp()        
         profEv = ConnProfileEv(myTime.getTimestamp(), "Switched On", ev)
         self.attachEv(profEv)
     
     
-    def go_disconnected(self, ev):    
-        minutes_on_line_session = myTime.getDiffNowMin( self.online_session  )
-        self.connected_total += minutes_on_line_session 
+    def disconnected_enter(self, ev):  
+        self._log.info(function_name())   
+       
         self.disconnected_ntimes += 1 
         
         if self.disconnected_ntimes == 1 :
-            #print minutes_on_line_session connected_total disconnected_ntimes
+            #print minutes_on_line_session online_total disconnected_ntimes
             profEv = ConnProfileEv(myTime.getTimestamp(), "State Disconnected", ev)
             self.attachEv(profEv)
         
@@ -275,13 +281,7 @@ class ConnProfiling():
             #TODO: write report
             self.attachEv( ProfReport(report) )
         
-            #THIS DATA HAS TO BE PRINTED ONLY IF WE WERE CONNECTED...!
-            self._log.info( "Total minutes Session Connection=" + str(minutes_on_line_session) )
-            self._log.info( "Total Overall Connection=" + str(self.connected_total) )  
-        
-            self.logEv("Total minutes Session Connection=" + str(minutes_on_line_session))
-            self.logEv("Total Overall Connection=" + str(self.connected_total))     
-            pass
+            
         
         self.online_session = None 
         
@@ -289,60 +289,27 @@ class ConnProfiling():
         
         pass                                                                 
         
-    def go_try_gprs(self, ev):
-        
-        #num timnes context activation failed
-        #num imes context activation succed
-        
-        pass
     
-    def exit_try_gprs(self, ev):
+    def enter_online(self, ev):
+        self.online += 1 
+        self._log.info("Connected times " + str(self.gprs_on_ntimes)) 
+        self.online_session = myTime.getTimestamp()
         
-        pass
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Connected Data", ev)
+        self.attachEv(profEv)
     
-    def go_try_provosioning(self, ec):
+    def exit_online(self, ev):
+        if self.online_session != None:
+            minutes_on_line_session = myTime.getDiffNowMin( self.online_session  )
+            self.online_total += minutes_on_line_session 
         
-        #num http request
-        #num http succed
+        #THIS DATA HAS TO BE PRINTED ONLY IF WE WERE CONNECTED...!
+            self._log.info( "Total minutes Session Connection=" + str(minutes_on_line_session) )
+            self._log.info( "Total Overall Connection=" + str(self.online_total) )  
         
-        pass
-    
-    def exit_provisioning(self):
-        pass
-    
-    def go_try_ssl_(self, ec):
+            self.logEv("Total minutes Session Connection=" + str(minutes_on_line_session))
+            self.logEv("Total Overall Connection=" + str(self.online_total))    
         
-        #num ssl socket try
-        #num socket failed
-        
-        pass
-    
-    def exit_ssl(self):
-        pass
-
-    def go_try_mqttConn(self,ec):
-                
-        pass
-    
-    def exit_mqttConn(self):
-        
-        pass
-    
-    def go_on_line(self, ec):
-        
-        
-        pass
-    
-    def exit_no_line(self):
-        pass
-    
-    #def go_gprs_on(self, ev):
-    #    self.gprs_on_ntimes += 1 
-    #    self._log.info("Connected times " + str(self.gprs_on_ntimes)) 
-    #    self.online_session = myTime.getTimestamp()
-        
-    #    profEv = ConnProfileEv(myTime.getTimestamp(), "Connected Data", ev)
-    #    self.attachEv(profEv)
     
     def ev_cme_error(self, state, ev):
         self._log.info("Cme Error in state " + state + "ev: " + ev)
@@ -361,184 +328,177 @@ class ConnProfiling():
     def printReport(self):
         self._log.info("Connected times " + str(self.gprs_on_ntimes))
         self._log.info("Disconnected times " + str(self.gprs_on_ntimes))
-        self._log.info( "Total Overall Connection=" + str(self.connected_total) )
+        self._log.info( "Total Overall Connection=" + str(self.online_total) )
 
 
-class FwConnStateMachine(StateMachine):
+
+class Off_state(StateFath):
+    
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
+        self.startState = True 
         
-    def off_state(self,ev):
-        newState = None        
-        self._log.info(function_name())
-        
-               
-        if ev.event == "evFwSysGsmOnFailed":
+    def processEv(self, event):
+        newState = None
+
+        if event.event == "evFwSysGsmOnFailed":
             pass
         
-        if ev.event == "evFwSysUserOn":
-            newState = "disconnected"
-            #self.rcv_evFwSwitchOn = True            
-
-        #evAtHostEEFiles has to be managed
-            
-        #if ev.event == "evAtHostEEFiles" and self.rcv_evFwSwitchOn:
-        #    newState = "disconnected"
-            #should go in sys setup...
-            #self.connProf.go_disconnected(ev)   
+        if event.event == "evFwSysUserOn":
+            newState = "Disconnected_state"
         
         return newState
-    
 
-    def disconnected_state(self, ev):
-        newState = None
-        self._log.info(function_name())
+class Disconnected_state(StateFath):
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
         
-        #this should be handled in sys setup state
-        if ev.event== "evFwSysGpsStartupFailed" or ev.event=="evFwSysNvmFailed" or ev.event=="evFwSysStartupFailed":  
+    def processEv(self, event):
+        newState = None
+        
+        if event.event== "evFwSysGpsStartupFailed" or event.event=="evFwSysNvmFailed" or event.event=="evFwSysStartupFailed":  
             #raise error
             #WHAT IS HAPPENING? 
             pass
         
         #FW HAS TO GO OFF FOR ERRORS; HOW?
         
-        if ev.event=="evAtGetIccid":
-            self.connProf.set_iccid(ev.str1)
+        #if event.event=="evAtGetIccid":
+        #    self.connProf.set_iccid(event.str1)
        
-        if ev.event == "evAtSgactQuery":
-            newState= "try_gprs"
+        if event.event == "evAtSgactQuery":
+            newState= "Gprs_state"
             #self.connProf.go_try_gprs()                            
         
-        if ev.event=="evFwSysUseOff":
-            newState = "off"
+        if event.event=="evFwSysUseOff":
+            newState = "Off_state"
             self.init_off()
-            self.connProf.go_off(ev)  
-                                
-        return newState
-    
-    def try_gprs_state(self, ev):
-        newState = None
-        self._log.info(function_name())
+            self.connProf.go_off(event)   
+                
+        return newState   
 
+class Gprs_state(StateFath):
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
+            
+    def processEv(self, event):
+        newState = None
+
+        #if event.event == "evAtSgactAns":
+        #    self.connProf.set_ip(event.str1)
         
-        if ev.event == "evAtSgactAns":
-            self.connProf.set_ip(ev.str1)
-        
-        if ev.event == "evAtCmeError":
+        if event.event == "evAtCmeError":
             self.connProf.ev_cme_error()
         
         #WARN: Should move on with the evAtSgactAns!
-        if ev.event == "evAtQueryProvisioning":  
-            newState = "try_provisioning" 
+        if event.event == "evAtQueryProvisioning":  
+            newState = "Provosioning_state" 
         
-        if ev.event == "evFwGprsActFailed":
-            newState = "disconnected"
+        if event.event == "evFwGprsActFailed":
+            newState = "Disconnected_state"
         
         return newState
     
-    def try_provosioning_state(self, ev):
+class Provosioning_state(StateFath):
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
+            
+    def processEv(self, event):
         newState = None
-        self._log.info(function_name())
 
-        if ev.event == "evAtCmeError":
+        if event.event == "evAtCmeError":
             self.connProf.ev_cme_error()
                                     
-        if ev.event == "evFwProvisioningFailed":
-            newState = "disconnected"             
+        if event.event == "evFwProvisioningFailed":
+            newState = "Disconnected_state"             
                     
-        if ev.event == "evAtRingOk":
-            newState = "try_ssl"   
+        if event.event == "evAtRingOk":
+            newState = "Ssl_state"   
             #WARN: should move on with the answer
         
         return newState
-    
-    def try_ssl_state(self, ev):
-        newState = None
-        self._log.info(function_name())
 
-        if ev.event == "evAtCmeError":
+class Ssl_state(StateFath):
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
+            
+    def processEv(self, event):
+        newState = None
+
+        if event.event == "evAtCmeError":
             self.connProf.ev_cme_error()
                               
-        if ev.event == "evFwSystemTlsFailed":
-            newState = "disconnected" 
+        if event.event == "evFwSystemTlsFailed":
+            newState = "Disconnected_state" 
                     
-        if ev.event == "evFwMqttConnect":
-            newState = "try_mqttConn"   
+        if event.event == "evFwMqttConnect":
+            newState = "MqttConn_state"   
         
         return newState
 
-    def try_mqttConn_state(self, ev):                 
+class MqttConn_state(StateFath):
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
+        
+    def processEv(self, event):
         newState = None
-        self._log.info(function_name())               
 
-        if ev.event == "evAtCmeError":
+        if event.event == "evAtCmeError":
             self.connProf.ev_cme_error()
                     
-        if ev.event == "evFwMqttConnectFailed":
-            newState = "disconnected" 
+        if event.event == "evFwMqttConnectFailed":
+            newState = "Disconnected_state" 
 
-        if ev.event == "evFwMqttPubFailed":
+        if event.event == "evFwMqttPubFailed":
             #raise error
             pass
                     
-        if ev.event == "evFwSystemOnLine":
-            newState = "on_line"   
-            self.connProf.go_gprs_on(ev)
+        if event.event == "evFwSystemOnLine":
+            newState = "Online_state"   
+            #self.connProf.go_gprs_on(event)
         
         return newState
-    
-    def on_line_state(self, ev):
-        newState = None
-        self._log.info(function_name())               
 
-        if ev.event == "evAtCmeError":
+class Online_state(StateFath):
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
+            
+    def processEv(self, event):
+        newState = None
+
+        if event.event == "evAtCmeError":
             self.connProf.ev_cme_error()
 
-        if ev.event == "evFwMqttPubFailed" or ev.event == "evFwMqttPIngFailed":
+        if event.event == "evFwMqttPubFailed" or event.event == "evFwMqttPIngFailed":
             #raise error
             pass 
-
                     
-        if ev.event=="evFwRecconnetInterval":
-            newState = "disconnected"
+        if event.event=="evFwRecconnetInterval":
+            newState = "Disconnected_state"
             #self.connProf.go_disconnected(ev)   
         
-        if ev.event=="evFwSysUseOff":
-            newState = "off"
+        if event.event=="evFwSysUseOff":
+            newState = "off_state"
             self.init_off()            
-                            
+            
         return newState
 
-    def stuck_state(self, ev):
-        #TODO: implement this state when fw is stuck
-        pass    
-
-    def init_off(self):
-        self.rcv_evFwSwitchOn= False
-
+class FactryStateMachine():
     def __init__(self, connProfiling, logEv):
-        super(self.__class__, self).__init__()
-        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
-                
-        self.evHand = regHandlerConn(self.run, self, logEv)        
-        self.connProf = connProfiling                        
-                      
-        self.add_state("Off", self.off_state)
-        self.set_start("Off")
         
-        self.add_state("on_line", self.on_line_state)
-        self.add_state("Disconnected", self.disconnected_state)
+        sm = StateMachine()
         
-        self.add_state("try_provisioning", self.try_provosioning_state)
-        self.add_state("try_ssl", self.try_ssl_state)
-        self.add_state("try_mqttConn", self.try_mqttConn_state)
-        self.add_state("try_gprs", self.try_gprs_state)                                        
+        self.evHand = regHandlerConn(sm.process, self, logEv)        
+        self.connProf = connProfiling      
         
-        #unkown state
-        self.add_state("stuck", self.stuck_state)
         
-        #has to be removed
-        self.init_off()
-       
-     
-     
-
-    
+        sm.add_state(Off_state(self.connProf))
+        sm.add_state(Disconnected_state(self.connProf))
+        sm.add_state(Gprs_state(self.connProf))
+        sm.add_state(Provosioning_state(self.connProf))
+        sm.add_state(Ssl_state(self.connProf))
+        sm.add_state(MqttConn_state(self.connProf))
+        sm.add_state(Online_state(self.connProf))
+             
+           
+      

@@ -131,7 +131,7 @@ class MqtDevice():
 
         self.gprs_on_ntimes=0
         self.online_session=0
-        self.connected_total=0
+        self.online_total=0
         
     
     def _subscribeClb(self):
@@ -161,10 +161,10 @@ class MqtDevice():
         #timevents is not logged!
         self._log.info("Receved Bye, Offline")
         minutes_session = myTime.getDiffNowMin( self.online_session  )
-        self.connected_total += minutes_session
+        self.online_total += minutes_session
        
         self._log.info( "Total minutes Session Connection=" + str(minutes_session) )
-        self._log.info( "Total Overall Connection=" + str(self.connected_total) )
+        self._log.info( "Total Overall Connection=" + str(self.online_total) )
         
         
     def msgClb(self, msg):
