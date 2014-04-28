@@ -1,6 +1,8 @@
 '''
 Created on Feb 18, 2014
 
+i
+
 todo:
 
 -file path in base of OS
