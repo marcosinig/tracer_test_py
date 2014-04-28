@@ -224,7 +224,27 @@ class ProfReport():
     
 
 class ConnProfiling():
+    class State_Profiling():                
+        def __init__(self):
+            self.data = { 'numTimes':0, 'total_time':0, 'session_ts':None, 'session_min':0 }            
+        
+        def enter(self):               
+            self.data['session_ts'] = myTime.getTimestamp()
+            self.data['numTimes'] += 1 
+            #self._log.info("online times " + str(self.online_nt)) 
+        
+        def exit(self):
+            if self.data['session_ts'] != None:
+                self.data['session_min'] = myTime.getDiffNowMin( self.session_t  )
+                self.data['total_time'] +=  self.data['session_min']
+        
+        def __str__(self):
+            line = """ Status " + self.__class__.__name__ + " 
+                    has last session duration minutes " + self.session_tm
     
+    class Online_p (State_Profiling):
+        pass 
+            
     def __init__(self, logEv):
         self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self.logEv = logEv
@@ -234,35 +254,54 @@ class ConnProfiling():
         self.iccid = None
         self.ip = None
         
-        #statistic on device
-        self.sw_on_session = None
-        self.sw_on_total = 0
+        #statistic on device, calculated as the amount of time that is not on the off state
+        self.on_session_t = None
+        self.on_total_t = 0
         
-        #startistics disconnected
-        self.disconnected_ntimes = -1
+        #startistics disconnected, updated everytime enter/exit disconnected status
+        self.disconnected_nt = -1
         
-        #statistics online
-        self.online_ntimes=0 
-        self.online_total = 0
-        self.online_session = None
-    
+        #statistics online, update in on_line status
+        self.online_nt=0 
+        self.online_total_t = 0
+        self.online_session_t = None
+        
+        self.gprs_nt=0
+        self.gprs_total_t = 0
+        self.gprs_session_t = None
+        
+        self.gprs_nt=0
+        self.gprs_total_t = 0
+        self.gprs_session_t = None
+        
+        self.provisioning_nt=0
+        self.provisioning_total_t = 0
+        self.provisioning_session_t = None
+
+        self.ssl_nt=0
+        self.ssl_total_t = 0
+        self.ssl_session_t = None
+        
+        self.mqtt_nt=0
+        self.mqtt_total_t = 0
+        self.mqtt_session_t = None        
     
     def off_enter(self, ev): 
         self._log.info(function_name())
         
-        if self.sw_on_session != None:
-            self.sw_on_total = myTime.getDiffNowMin( self.sw_on_session  )        
-            #print sw_on_total and sw_on_session
+        if self.on_session_t != None:
+            self.on_total_t = myTime.getDiffNowMin( self.on_session_t  )        
+            #print on_total_t and on_session_t
             pass
             profEv = ConnProfileEv(myTime.getTimestamp(), "Switching off", ev)
             self.attachEv(profEv)
     
-            self.sw_on_session = None
+            self.on_session_t = None
     
                                     
     def off_exit(self, ev):
         self._log.info(function_name())         
-        self.sw_on_session = myTime.getTimestamp()        
+        self.on_session_t = myTime.getTimestamp()        
         profEv = ConnProfileEv(myTime.getTimestamp(), "Switched On", ev)
         self.attachEv(profEv)
     
@@ -270,51 +309,155 @@ class ConnProfiling():
     def disconnected_enter(self, ev):  
         self._log.info(function_name())   
        
-        self.disconnected_ntimes += 1 
+        self.disconnected_nt += 1 
+        self._log.info("Disconnected times " + str(self.disconnected_nt)) 
         
-        if self.disconnected_ntimes == 1 :
-            #print minutes_on_line_session online_total disconnected_ntimes
+        if self.disconnected_nt == 1 :
+            #print minutes_on_line_session online_total_t disconnected_nt
             profEv = ConnProfileEv(myTime.getTimestamp(), "State Disconnected", ev)
             self.attachEv(profEv)
-        
-            report = ""
-            #TODO: write report
-            self.attachEv( ProfReport(report) )
-        
-            
-        
-        self.online_session = None 
-        
-    def exit_disconnected(self):
-        
+                    
+    def disconnected_exit(self, ev):        
         pass                                                                 
         
     
-    def enter_online(self, ev):
-        self.online += 1 
-        self._log.info("Connected times " + str(self.gprs_on_ntimes)) 
-        self.online_session = myTime.getTimestamp()
-        
+    def online_enter(self, ev):
+        self._log.info(function_name())   
+        self.online_session_t = myTime.getTimestamp()
+        self.online_nt += 1 
+        self._log.info("online times " + str(self.online_nt)) 
+                
         profEv = ConnProfileEv(myTime.getTimestamp(), "Connected Data", ev)
         self.attachEv(profEv)
     
-    def exit_online(self, ev):
-        if self.online_session != None:
-            minutes_on_line_session = myTime.getDiffNowMin( self.online_session  )
-            self.online_total += minutes_on_line_session 
+    def online_exit(self, ev):
+        self._log.info(function_name())   
+        #WARN: is this necessary?!?!?
+        if self.online_session_t != None:
+            minutes = myTime.getDiffNowMin( self.online_session_t  )
+            self.online_total_t += minutes
+            
+            profEv = ConnProfileEv(myTime.getTimestamp(), "Exiting Online", ev)
+            self.attachEv(profEv) 
         
         #THIS DATA HAS TO BE PRINTED ONLY IF WE WERE CONNECTED...!
-            self._log.info( "Total minutes Session Connection=" + str(minutes_on_line_session) )
-            self._log.info( "Total Overall Connection=" + str(self.online_total) )  
+            self._log.info( "Total minutes Session Connection=" + str(minutes) )
+            self._log.info( "Total Overall Connection=" + str(self.online_total_t) )  
         
-            self.logEv("Total minutes Session Connection=" + str(minutes_on_line_session))
-            self.logEv("Total Overall Connection=" + str(self.online_total))    
-        
+            self.logEv("Total minutes Session Connection=" + str(minutes))
+            self.logEv("Total Overall Connection=" + str(self.online_total_t)) 
+            
+            self.online_session_t = None 
+   
+    def gprs_enter(self, ev):
+        self._log.info(function_name())
+        self.gprs_session_t = myTime.getTimestamp()
+        self.gprs_nt += 1 
+        self._log.info("gprs_nt times " + str(self.gprs_nt)) 
+                
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Trying gprs", ev) 
     
+    def gprs_exit(self, ev):
+        self._log.info(function_name())   
+        #WARN: is this necessary?!?!?
+        if self.gprs_session_t != None:
+            minutes = myTime.getDiffNowMin( self.gprs_session_t  )
+            self.gprs_total_t += minutes
+            
+            profEv = ConnProfileEv(myTime.getTimestamp(), "Exiting Gprs", ev)
+            self.attachEv(profEv) 
+        
+        #THIS DATA HAS TO BE PRINTED ONLY IF WE WERE CONNECTED...!
+            self._log.info( "Total gprs Session Connection=" + str(minutes) )
+            self._log.info( "Total gprs Connection=" + str(self.gprs_total_t) )  
+        
+            self.logEv("Total gprs Session Connection=" + str(minutes))
+            self.logEv("Total gprs Connection=" + str(self.gprs_total_t)) 
+            
+            self.gprs_session_t = None     
+         
+    def provisioning_enter(self, ev):
+        self._log.info(function_name())
+        self.provisioning_session_t = myTime.getTimestamp()
+        self.provisioning_nt += 1 
+        self._log.info("provisioning_nt times " + str(self.provisioning_nt)) 
+                
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Entering provisioning", ev) 
+    
+    def provisioning_exit(self, ev):
+        self._log.info(function_name())   
+        #WARN: is this necessary?!?!?
+        if self.provisioning_session_t != None:
+            minutes = myTime.getDiffNowMin( self.provisioning_session_t  )
+            self.provisioning_total_t += minutes
+            
+            profEv = ConnProfileEv(myTime.getTimestamp(), "Exiting provisioning", ev)
+            self.attachEv(profEv) 
+        
+        #THIS DATA HAS TO BE PRINTED ONLY IF WE WERE CONNECTED...!
+            self._log.info( "Total provisioning Session Connection=" + str(minutes) )
+            self._log.info( "Total provisioning Connection=" + str(self.provisioning_total_t) )  
+        
+            self.logEv("Total provisioning Session Connection=" + str(minutes))
+            self.logEv("Total provisioning Connection=" + str(self.provisioning_total_t)) 
+            
+            self.gprs_session_t = None 
+            
+    def ssl_enter(self, ev):
+        self._log.info(function_name())
+        self.ssl_session_t = myTime.getTimestamp()
+        self.ssl_nt += 1 
+        self._log.info("ssl_nt times " + str(self.ssl_nt)) 
+                
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Entering ssl", ev)
+    
+    def ssl_exit(self, ev):
+        self._log.info(function_name())   
+        #WARN: is this necessary?!?!?
+        if self.ssl_session_t != None:
+            minutes = myTime.getDiffNowMin( self.ssl_session_t  )
+            self.ssl_total_t += minutes
+            
+            profEv = ConnProfileEv(myTime.getTimestamp(), "Exiting ssl", ev)
+            self.attachEv(profEv) 
+        
+        #THIS DATA HAS TO BE PRINTED ONLY IF WE WERE CONNECTED...!
+            self._log.info( "Total ssl Session Connection=" + str(minutes) )
+            self._log.info( "Total ssl Connection=" + str(self.ssl_total_t) )  
+        
+            self.logEv("Total ssl Session Connection=" + str(minutes))
+            self.logEv("Total ssl Connection=" + str(self.ssl_total_t)) 
+            
+            self.ssl_session_t = None  
+    
+    def mqttConn_enter(self, ev):
+        self._log.info(function_name())
+        self.mqtt_session_t = myTime.getTimestamp()
+        self.mqtt_nt += 1 
+        self._log.info("mqtt_nt times " + str(self.mqtt_nt)) 
+                
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Entering mqtt", ev) 
+    
+    def mqttConn_exit(self, ev):
+        self._log.info(function_name())   
+        #WARN: is this necessary?!?!?
+        if self.mqtt_session_t != None:
+            minutes = myTime.getDiffNowMin( self.mqtt_session_t  )
+            self.mqtt_total_t += minutes
+            
+            profEv = ConnProfileEv(myTime.getTimestamp(), "Exiting mqtt", ev)
+            self.attachEv(profEv) 
+        
+        #THIS DATA HAS TO BE PRINTED ONLY IF WE WERE CONNECTED...!
+            self._log.info( "Total mqtt Session Connection=" + str(minutes) )
+            self._log.info( "Total mqtt Connection=" + str(self.mqtt_total_t) )  
+        
+            self.logEv("Total mqtt Session Connection=" + str(minutes))
+            self.logEv("Total mqtt Connection=" + str(self.mqtt_total_t))  
+            
     def ev_cme_error(self, state, ev):
         self._log.info("Cme Error in state " + state + "ev: " + ev)
                                 
-
     def set_iccid(self, iccid):
         self.iccid=iccid
     def set_ip(self, ip):
@@ -328,7 +471,7 @@ class ConnProfiling():
     def printReport(self):
         self._log.info("Connected times " + str(self.gprs_on_ntimes))
         self._log.info("Disconnected times " + str(self.gprs_on_ntimes))
-        self._log.info( "Total Overall Connection=" + str(self.online_total) )
+        self._log.info( "Total Overall Connection=" + str(self.online_total_t) )
 
 
 
@@ -347,7 +490,7 @@ class Off_state(StateFath):
         if event.event == "evFwSysUserOn":
             newState = "Disconnected_state"
         
-        return newState
+        return newState   
 
 class Disconnected_state(StateFath):
     def __init__(self, obs):
