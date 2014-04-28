@@ -271,6 +271,7 @@ class ConnProfiling():
         self.disconnected_nt = -1
         
         self.online_p = ConnProfiling.State_Profiling("Online")
+        self.disconnected_p = ConnProfiling.State_Profiling("Disconnected")
         self.gprs_p = ConnProfiling.State_Profiling("Gprs")
         self.provisioning_p = ConnProfiling.State_Profiling("Provisioning")
         self.ssl_p = ConnProfiling.State_Profiling("Ssl")
@@ -300,13 +301,10 @@ class ConnProfiling():
     def disconnected_enter(self, ev):  
         self._log.info(function_name())   
        
-        self.disconnected_nt += 1 
-        self._log.info("Disconnected times " + str(self.disconnected_nt)) 
+        self.disconnected_p.enter()
         
-        if self.disconnected_nt == 1 :
-            #print minutes_on_line_session online_total_t disconnected_nt
-            profEv = ConnProfileEv(myTime.getTimestamp(), "State Disconnected", ev)
-            self.attachEv(profEv)
+        profEv = ConnProfileEv(myTime.getTimestamp(), "State Disconnected", ev)
+        self.attachEv(profEv)
                     
     def disconnected_exit(self, ev):        
         pass                                                                 
@@ -314,6 +312,10 @@ class ConnProfiling():
     
     def online_enter(self, ev):
         self._log.info(function_name())   
+        
+        self.disconnected_p.exit()
+        profEv = ConnProfileEv(myTime.getTimestamp(), "Disconnected Exit", ev, copy.deepcopy(self.disconnected_p))
+        self.attachEv(profEv) 
         
         self.online_p.enter()
         
@@ -480,7 +482,10 @@ class Gprs_state(StateFath):
             newState = "Provosioning_state" 
         
         if event.event == "evFwGprsActFailed":
-            newState = "Disconnected_state"
+            pass
+        
+        if event.event=="evFwRecconnetInterval":
+            newState = "Disconnected_state" 
         
         return newState
     
@@ -495,7 +500,10 @@ class Provosioning_state(StateFath):
             self.connProf.ev_cme_error()
                                     
         if event.event == "evFwProvisioningFailed":
-            newState = "Disconnected_state"             
+            pass         
+        
+        if event.event=="evFwRecconnetInterval":
+            newState = "Disconnected_state" 
                     
         if event.event == "evAtRingOk":
             newState = "Ssl_state"   
@@ -514,6 +522,9 @@ class Ssl_state(StateFath):
             self.connProf.ev_cme_error()
                               
         if event.event == "evFwSystemTlsFailed":
+            pass
+        
+        if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state" 
                     
         if event.event == "evFwMqttConnect":
@@ -532,11 +543,14 @@ class MqttConn_state(StateFath):
             self.connProf.ev_cme_error()
                     
         if event.event == "evFwMqttConnectFailed":
-            newState = "Disconnected_state" 
+            pass 
 
         if event.event == "evFwMqttPubFailed":
             #raise error
             pass
+        
+        if event.event=="evFwRecconnetInterval":
+            newState = "Disconnected_state"        
                     
         if event.event == "evFwSystemOnLine":
             newState = "Online_state"   
@@ -560,7 +574,6 @@ class Online_state(StateFath):
                     
         if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state"
-            #self.connProf.go_disconnected(ev)   
         
         if event.event=="evFwSysUseOff":
             newState = "off_state"
