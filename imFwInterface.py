@@ -62,12 +62,12 @@ class EventMsg():
         self.str1 = str1
     
     def isErrorEvent(self):
-        if self.event[0:-5] == "Error":
+        if self.event[-5:] == "Error":
             return True
         return False
     
     def isFaultEvent(self):
-        if self.event[0:-6] == "Failed":
+        if self.event[-6:] == "Failed":
             return True
         return False
     
@@ -84,14 +84,10 @@ class EventMsg():
         if  self.isErrorEvent():
                 return "Error"
         
-        
-    
     def getSource(self):
         #return xxXXxxx
         #evAtCmeError -> At
         return  self.event[2:5]
-
-    
         
     def __str__(self):
         return "Event= " + self.event + " line= " + self.line 
