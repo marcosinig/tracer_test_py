@@ -24,14 +24,14 @@ NOT WORKING:
 @author: I'm
 '''
 
-import datetime
+#import datetime
 
 
-from imUtils import *
-from imFwInterface import *
-from imFwConnProfiling import *
-import platform
-import time
+import imUtils 
+import imFwInterface
+import imFwConnProfiling 
+
+import time, os, platform
 
 
 UART_WIN = "COM8"
@@ -39,8 +39,8 @@ UART_MAC = "/dev/cu.usbmodemimTrace1"
 
 LOG_FOLDER = "logs"              
 
-#_log = logging.getLogger(__name__)        
-#configureLog(_log)
+log = imUtils.logging.getLogger(__name__)        
+imUtils.configureLog(log)
 
     
 class SessionManager(object):
@@ -49,9 +49,9 @@ class SessionManager(object):
     """
     
     def __init__(self):
-        self.time = myTime()
+        self.time = imUtils.myTime()
         #cerates logfile and logErrorfile            
-        self.logFile = LogFile(LOG_FOLDER, self.time)  
+        self.logFile = imUtils.LogFile(LOG_FOLDER, self.time)  
           
         
 
@@ -62,16 +62,16 @@ class UartM(SessionManager):
     
     def __init__(self):    
         super(self.__class__, self).__init__()                                               
-        self._uart = Uart(UartM.returnOsCom())    
-        self._events = ShellEvents()
-        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._uart = imUtils.Uart(UartM.returnOsCom())    
+        self._events = imFwInterface.ShellEvents()
+        self._log = imUtils.logging.getLogger(__name__ + "." + self.__class__.__name__)
                 
         self._uart.msubscribe(self.time.updTime)                
         self._uart.msubscribe(self.logFile.printConsole)
         self._uart.msubscribe(self.logFile.fwLog)
         self._uart.msubscribe(self._events.callAllFunc)                                      
         
-        self.fwCmd= FwCommands(self._uart)     
+        self.fwCmd= imFwInterface.FwCommands(self._uart)     
         
     def __del__(self):
         self._log.debug("Called del ")
@@ -81,7 +81,7 @@ class UartM(SessionManager):
       
     def start(self):
         #start the uart thread
-        logger.info("Starting Uart parsing com " + self._uart.uart_port)
+        self._log.info("Starting Uart parsing com " + self._uart.uart_port)
         self._uart.open_ser() 
         self._uart.start()
         
@@ -100,7 +100,7 @@ def startUartLog():
     #just switch on the device and log all the errors 
     global sessMng        
     sessMng = UartM()         
-    sessMng._stateMac = FwConnStateMachine(sessMng.logFile.evLog)
+    sessMng._stateMac = imFwConnProfiling.FwConnStateMachine(sessMng.logFile.evLog)
     sessMng._events.msubscribe(sessMng._stateMac.evHand.callMatchFuncName)
     
     sessMng.start()
@@ -122,9 +122,9 @@ class ParseLogFileM(SessionManager):
 
     def __init__(self):    
         super(self.__class__, self).__init__()
-        self._file = ReadLogFile()           
-        self._events = ShellEvents()
-        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._file = imUtils.ReadLogFile()           
+        self._events = imFwInterface.ShellEvents()
+        self._log = imUtils.logging.getLogger(__name__ + "." + self.__class__.__name__)
         
         #self._file.msubscribe(self.time.updTime)                
         self._file.msubscribe(self.logFile.printConsole)
@@ -144,14 +144,14 @@ def startParseLogFile():
     #logPath = logPath + "\\fw_logs\\log_13_03_multiple_send.txt"
     logPath = logPath + "//fw_logs//log_13_03_multiple_send.txt"
     #logPath = "C:\\Users\\i'm Developer\\Documents\\log_imhere\\connction_problem\\log_sos_2_23_04.txt"
-    logger.info("Starting ParseLogFile file: " + logPath);
+    log.info("Starting ParseLogFile file: " + logPath);
 
     
     global sessMng    
     sessMng = ParseLogFileM()
     
     #sessMng.connProf = ConnProfiling(sessMng.logFile.evLog)
-    sessMng.stMachine = FactryStateMachine( sessMng.logFile.evLog)
+    sessMng.stMachine = imFwConnProfiling.FactryStateMachine( sessMng.logFile.evLog)
                      
     sessMng._events.msubscribe(sessMng.stMachine.evHand.callMatchFuncName)
     
@@ -160,7 +160,7 @@ def startParseLogFile():
 
 sessMng = None    
 if __name__ == "__main__":
-    logger.info("Starting Main");
+    log.info("Starting Main");
     #startUartLog()
     startParseLogFile()
     
