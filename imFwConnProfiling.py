@@ -213,12 +213,13 @@ class regHandlerConn(Parseble):
 class ConnEvents():
     
     class ConnProfileEv(object):
-        def __init__(self, timestamp, msg, ev, status_p = None, errors_ev_list = None):
+        def __init__(self, connEvents, msg, ev, status_p = None, errors_ev_list = None):
             #obj has to implement to string
-            
-            self.timestamp = timestamp
+            self.timestamp = myTime.getTimestamp()
+            self.connEvents = connEvents
             self.msg = msg
             self.ev = ev
+            self.status_p = None
             #status report
             if status_p != None:
                 self.status_p = copy.deepcopy(status_p)
@@ -227,24 +228,28 @@ class ConnEvents():
         
         def __str__(self):
             #TODO write in base of what is present in nice way
-            line = str( self.timestamp ) + " - " + self.msg + " - \n\t" + str(self.ev)
+            line = str( "\n" + self.timestamp.strftime("%H:%M:%S")  ) + " - " + self.msg + " - " #+ str(self.ev)
             if self.status_p != None:
-                line += "- \t" + str(self.status_p)
+                line += "- \n\t" + str(self.status_p)
             if self.error_ev_list != None:
                 line += "- \n\t"
-                for errL in self.error_ev:
+                for errL in self.error_ev_list:
                     line += str( errL )        
             return line 
 
     class ConnProfExEv(ConnProfileEv):
-        def __init__(self, timestamp, ev):
-            super(self.__class__, self).__init__(timestamp, ev.getSource() +" "+ev.getExceptionType(), ev)
+        def __init__(self, connEvents, ev):
+            super(self.__class__, self).__init__( connEvents, ev.getSource() +" "+ev.getExceptionType(), ev)
     
     class ConnProfStatusEv(ConnProfileEv):
         #not used
-        def __init__(self, timestamp, msg, ev, status_p):
-            super(self.__class__, self).__init__(timestamp, ev.getSource() +" "+ev.getExceptionType(), ev, status_p)
+        def __init__(self,connEvents, msg, ev, status_p):
+            super(self.__class__, self).__init__(connEvents,  ev.getSource() +" "+ev.getExceptionType(), ev, status_p)
     
+    class ConnProfileEvEx(ConnProfileEv):
+        def __init__(self, connEvents, msg, ev, status_p):
+            super(self.__class__, self).__init__( connEvents, ev.getSource() , ev, status_p)
+
     
     def __init__(self):
         #list of all the events reported by the profile class
@@ -263,6 +268,10 @@ class ConnEvents():
         #self._log.info(ev)
         
     def __str__(self):
+        text=""
+        for e in self.eventsProf:
+            text += str(e)
+        return text
         
         pass
     def getProfEv(self):
@@ -328,7 +337,7 @@ class ConnProfiling():
             self.on_total_t = myTime.getDiffNowMin( self.on_session_t  )        
             #print on_total_t and on_session_t
             pass
-            profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Switching off", ev)
+            profEv = self.connEvents.ConnProfileEv(self, "Switching off", ev)
             self.connEvents.addProfEv(profEv)
     
             self.on_session_t = None
@@ -337,7 +346,7 @@ class ConnProfiling():
     def off_exit(self, ev):
         self._log.info(function_name())         
         self.on_session_t = myTime.getTimestamp()                
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Switched On", self.disconnected_p, self.connEvents.getAllExEv())
+        profEv = self.connEvents.ConnProfileEvEx(self, "Switched On", ev, self.disconnected_p)
         self.connEvents.addProfEv(profEv)
     
     
@@ -346,7 +355,7 @@ class ConnProfiling():
        
         self.disconnected_p.enter()
         
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "State Disconnected", ev)
+        profEv = self.connEvents.ConnProfileEv(self, "Disconnected Enter", ev)
         self.connEvents.addProfEv(profEv)
                     
     def disconnected_exit(self, ev):        
@@ -357,12 +366,12 @@ class ConnProfiling():
         self._log.info(function_name())   
         
         self.disconnected_p.exit()
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Disconnected Exit", ev, self.disconnected_p, self.connEvents.getAllExEv())
+        profEv = self.connEvents.ConnProfileEvEx(self, "Disconnected Exit", ev, self.disconnected_p)
         self.connEvents.addProfEv(profEv) 
         
         self.online_p.enter()
         
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Online Enter", ev)
+        profEv = self.connEvents.ConnProfileEv(self, "Online Enter", ev)
         self.connEvents.addProfEv(profEv)
     
     def online_exit(self, ev):
@@ -372,7 +381,7 @@ class ConnProfiling():
         #self._log.info(str (self.online_p) )
         #copy_p = copy.deepcopy(self.online_p)
         
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Online Exit", ev, self.online_p)
+        profEv = self.connEvents.ConnProfileEvEx(self, "Online Exit", ev, self.online_p)
         self.connEvents.addProfEv(profEv) 
    
     def gprs_enter(self, ev):
@@ -380,7 +389,7 @@ class ConnProfiling():
         
         self.gprs_p.enter()
 
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Gprs enter", ev) 
+        profEv = self.connEvents.ConnProfileEv(self, "Gprs enter", ev) 
         self.connEvents.addProfEv(profEv)
     
     def gprs_exit(self, ev):
@@ -389,7 +398,7 @@ class ConnProfiling():
         self.gprs_p.exit()
         #self._log.info(str (self.gprs_p) )
         
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Gprs exit", ev, self.gprs_p, self.connEvents.getAllExEv()) 
+        profEv = self.connEvents.ConnProfileEvEx( self,"Gprs exit", ev, self.gprs_p) 
         self.connEvents.addProfEv(profEv)
          
     def provisioning_enter(self, ev):
@@ -397,7 +406,7 @@ class ConnProfiling():
        
         self.provisioning_p.enter()
 
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Provisioning enter", ev) 
+        profEv = self.connEvents.ConnProfileEv(self, "Provisioning enter", ev) 
         self.connEvents.addProfEv(profEv)
     
     def provisioning_exit(self, ev):
@@ -406,7 +415,7 @@ class ConnProfiling():
         self.provisioning_p.exit()
         self._log.info(str (self.provisioning_p) )
         
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Provisioning exit", ev, self.provisioning_p, self.connEvents.getAllExEv()) 
+        profEv = self.connEvents.ConnProfileEvEx(self, "Provisioning exit", ev, self.provisioning_p) 
         self.connEvents.addProfEv(profEv)
             
     def ssl_enter(self, ev):
@@ -414,7 +423,7 @@ class ConnProfiling():
        
         self.ssl_p.enter()
 
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Ssl enter", ev) 
+        profEv = self.connEvents.ConnProfileEv(self,"Ssl enter", ev) 
         self.connEvents.addProfEv(profEv)
     
     def ssl_exit(self, ev):
@@ -423,7 +432,7 @@ class ConnProfiling():
         self.ssl_p.exit()
         self._log.info(str (self.ssl_p) )
         
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Ssl exit", ev, self.ssl_p, self.connEvents.getAllExEv()) 
+        profEv = self.connEvents.ConnProfileEvEx( self,"Ssl exit", ev, self.ssl_p) 
         self.connEvents.addProfEv(profEv)
     
     def mqttConn_enter(self, ev):
@@ -431,7 +440,7 @@ class ConnProfiling():
         
         self.mqtt_p.enter()
 
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Mqtt enter", ev) 
+        profEv = self.connEvents.ConnProfileEv(self, "Mqtt enter", ev) 
         self.connEvents.addProfEv(profEv)
     
     def mqttConn_exit(self, ev):
@@ -440,20 +449,15 @@ class ConnProfiling():
         self.mqtt_p.exit()
         self._log.info(str (self.mqtt_p) )
         
-        profEv = self.connEvents.ConnProfileEv(myTime.getTimestamp(), "Mqtt exit", ev, self.mqtt_p, self.connEvents.getAllExEv()) 
+        profEv = self.connEvents.ConnProfileEvEx( self,"Mqtt exit", ev, self.mqtt_p) 
         self.connEvents.addProfEv(profEv) 
             
 
-                                
+                        
     def set_iccid(self, iccid):
         self.iccid=iccid
     def set_ip(self, ip):
         self.ip = ip
-        
-      
-    
-    def printReport(self):
-        pass
 
 
 
@@ -608,21 +612,24 @@ class Online_state(StateFath):
 class FactryStateMachine():
     def __init__(self, logEv):
         
-        sm = StateMachine()
-        ce = ConnEvents()
+        self.sm = StateMachine()
+        self.ce = ConnEvents()
         
         
-        self.evHand = regHandlerConn(sm.process, self, logEv)        
-        self.connProf = ConnProfiling(ce, logEv)      
+        self.evHand = regHandlerConn(self.sm.process, self, logEv)        
+        self.connProf = ConnProfiling(self.ce, logEv)      
         
         
-        sm.add_state(Off_state(self.connProf))
-        sm.add_state(Disconnected_state(self.connProf))
-        sm.add_state(Gprs_state(self.connProf))
-        sm.add_state(Provosioning_state(self.connProf))
-        sm.add_state(Ssl_state(self.connProf))
-        sm.add_state(MqttConn_state(self.connProf))
-        sm.add_state(Online_state(self.connProf))
-             
+        self.sm.add_state(Off_state(self.connProf))
+        self.sm.add_state(Disconnected_state(self.connProf))
+        self.sm.add_state(Gprs_state(self.connProf))
+        self.sm.add_state(Provosioning_state(self.connProf))
+        self.sm.add_state(Ssl_state(self.connProf))
+        self.sm.add_state(MqttConn_state(self.connProf))
+        self.sm.add_state(Online_state(self.connProf))
+    
+    def printReport(self):
+        print("\n Start Report \n")
+        print str(self.ce)
            
       

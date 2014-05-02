@@ -31,7 +31,7 @@ import imUtils
 import imFwInterface
 import imFwConnProfiling 
 
-import time, os, platform
+import time, os, platform, sys
 
 
 UART_WIN = "COM8"
@@ -140,7 +140,8 @@ class ParseLogFileM(SessionManager):
         self.ReadLogFile.closeLog()    
         
 def startParseLogFile():                
-    logPath =  os.path.dirname(os.path.realpath(__file__))  
+    #logPath =  os.path.dirname(os.path.realpath(__file__))  
+    logPath = os.getcwd()
     #logPath = logPath + "\\fw_logs\\log_13_03_multiple_send.txt"
     logPath = logPath + "//fw_logs//log_13_03_multiple_send.txt"
     #logPath = "C:\\Users\\i'm Developer\\Documents\\log_imhere\\connction_problem\\log_sos_2_23_04.txt"
@@ -156,6 +157,9 @@ def startParseLogFile():
     sessMng._events.msubscribe(sessMng.stMachine.evHand.callMatchFuncName)
     
     sessMng.start(logPath)
+    
+    sessMng.stMachine.printReport()
+    
     
 
 sessMng = None    
