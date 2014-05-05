@@ -38,15 +38,19 @@ class StateMachine(object):
     
     def get_CurrentState(self):
         return self.currentState
+    
+        
+    def change_state(self, newStateName, event):
+        self._log.debug( "new State: " + newStateName )
+        newState = self.get_State(newStateName)  
+        self.currentState.acExitState(event)
+        newState.acEnterState(event)
+        self.currentState = newState
         
     def process(self, event):            
         newStateName = self.currentState.processEv(event)
         if newStateName != None:
-            self._log.debug( "new State: " + newStateName )
-            newState = self.get_State(newStateName)  
-            self.currentState.acExitState(event)
-            newState.acEnterState(event)
-            self.currentState = newState
+            self.change_state(newStateName, event)
 
 
 class StateFath(object):
