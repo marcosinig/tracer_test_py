@@ -32,6 +32,7 @@ log = imUtils.logging.getLogger(__name__)
 imUtils.configureLog(log)
 
 
+
 class regHandlerConn(imUtils.Parseble):
     """
     function names are called in base of shell and mqtt events
@@ -458,13 +459,47 @@ class ConnProfiling():
     def set_ip(self, ip):
         self.ip = ip
 
+class AtStuck_state(StateFath):
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
 
+class FwStuck_state(StateFath):
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
+                
+class Undef_state(StateFath):
+    """
+    State used for defining if the tracer is already switched on or off
+    If it is off, goes to off_state
+    If it is on, a reset is require --> TODO
+    """
+    timeout_exit_state = 15.0
+    
+    def __init__(self, obs):
+        super(self.__class__, self).__init__(obs)
+        self.startState = True 
+        self.timer = Timer(Undef_state.timeout_exit_state, self.gotoOff)
+    
+    def gotoOff(self):
+            print "timeout expired!"
+            newState = "Off_state"
+
+    def acEnterState(self, ev):
+        #setup a call timeout, if nothing happen go to off!
+        print "setup time handler"
+        self.timer.start()
+    
+    def processEv(self, event):
+        #if there is an event it is not switched off
+        self.timer.cancel()
+        print "Reset is required!"
+        #raise SOMETHING!
 
 class Off_state(imStateMachine.StateFath):
     
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
-        self.startState = True 
+        
         
     def processEv(self, event):
         newState = None
@@ -567,7 +602,9 @@ class Ssl_state(imStateMachine.StateFath):
         
         return newState
 
+
 class MqttConn_state(imStateMachine.StateFath):
+
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
         
@@ -608,7 +645,49 @@ class Online_state(imStateMachine.StateFath):
             
         return newState
 
+class Check_Tracer_Status():
+    """
+    this class has to check:
+    - fw is stuck: no activity for the last x seconds: it is stuck
+       - check has to be executed only when it is not switched_off state
+    - gsm interface is stuck: only trace commands and not at activity!
+    
+    TODO: 
+     get state reference
+     force to go in a state 
+    
+    """
+    fw_command_threshold = 15
+    def __init__(self, stateMachine):
+        self.at_commands = 0
+        self.fw_commands = 0
+        self.sm = stateMachine
+        
+    
+    def no_activity_handler(self):
+        #function to be schedule after xsec timeout
+        print "firmware seems to be stcuk"
+        #TODO: event = !!!!
+        sm.change_state("FwStuck_state", event)
+        
+    def process(self, event):
+        if event.isAtEvent() :
+            self.fw_commands = 0
+        if event.isFwEvent() :
+            self.fw_commands +=1
+        if self.fw_commands > Check_Tracer_Status.fw_command_threshold:
+            print "at command interface seems to be stcuk!!"
+            #TODO: event = !!!!
+            sm.change_state("AtStuck_state", event)
+        
+        #if state != off:
+        #    if 
+            
+
 class FactryStateMachine():
+    """
+    This is a singleton, TODO: it has to be implemnted according
+    """
     def __init__(self, logEv):
         
         self.sm = imStateMachine.StateMachine()
@@ -617,8 +696,12 @@ class FactryStateMachine():
         
         self.evHand = regHandlerConn(self.sm.process, self, logEv)        
         self.connProf = ConnProfiling(self.ce, logEv)      
+        #TODO: add Check_Tracer_Status
         
         
+        self.sm.add_state(AtStuck_state())
+        self.sm.add_state(FwStuck_state())
+        self.sm.add_state(Undef_state())
         self.sm.add_state(Off_state(self.connProf))
         self.sm.add_state(Disconnected_state(self.connProf))
         self.sm.add_state(Gprs_state(self.connProf))

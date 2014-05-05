@@ -306,7 +306,17 @@ class EventMsg():
     def getSource(self):
         #return xxXXxxx
         #evAtCmeError -> At
-        return  self.event[2:5]
+        return  self.event[2:4]
+    
+    def isAtEvent(self):
+        if self.getSource() == "At" :
+            return True
+        return False
+    
+    def isFwEvent(self):
+        if self.getSource() == "Fw" :
+            return True
+        return False
         
     def __str__(self):        
         return "Event= " + self.event + " line= " + self.line + " str = " +self.str1 
@@ -557,10 +567,15 @@ class ShellEvents(imUtils.Observable, imUtils.Parseble):
         return False
                        
                  
+
 def test_print(ev):
     print "Found " + str(ev) 
 
+
 def test_ShellEvents():
+    def test_print(ev):
+        print "Found " + str(ev)
+        
     sh = ShellEvents()
     sh.msubscribe(test_print)
     
@@ -577,8 +592,24 @@ def test_ShellEvents():
 
     sh.callAllFunc(str)
 
+def test_IsSourceEvent():
+    def test_(ev):
+        print "Found " #+ str(ev)
+        if (ev.isFwEvent()):
+            print "Is Fw ev "
+        if (ev.isAtEvent()):
+            print "Is At ev "
+        
+    sh = ShellEvents()
+    sh.msubscribe(test_)
+    
+    str = "AT#SSLD="
+    #str = "Reconnect interval waiting"
+    sh.callAllFunc(str)
+
 if __name__ == "__main__":
-    test_ShellEvents()
+    #test_ShellEvents()
+    test_IsSourceEvent()
         
             
  
