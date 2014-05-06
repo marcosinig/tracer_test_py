@@ -659,18 +659,21 @@ class Check_Tracer_Status():
      force to go in a state 
     
     """
+    #num consecutive fw events for going in at stuck
     fw_command_threshold = 15
+    timeout_fw_stuck = 15.0
+    
     def __init__(self, stateMachine):
-        self.at_commands = 0
         self.fw_commands = 0
         self.sm = stateMachine
+        self.timer = Timer(Check_Tracer_Status.timeout_fw_stuck, self.no_activity_handler)
         
     
     def no_activity_handler(self):
         #function to be schedule after xsec timeout
         print "firmware seems to be stcuk"
-        #TODO: event = !!!!
-        sm.change_state("FwStuck_state", event)
+        #TODO: string = !!!!
+        sm.change_state("FwStuck_state", AutoEvents.evFwAutoStuck(str ))
         
     def process(self, event):
         if event.isAtEvent() :
@@ -679,11 +682,13 @@ class Check_Tracer_Status():
             self.fw_commands +=1
         if self.fw_commands > Check_Tracer_Status.fw_command_threshold:
             print "at command interface seems to be stcuk!!"
-            #TODO: event = !!!!
-            sm.change_state("AtStuck_state", event)
+            #TODO: str = !!!!
+            sm.change_state("AtStuck_state", AutoEvents.evAtAutoStuck( str))
         
-        #if state != off:
-        #    if 
+        if str(sm.get_CurrentState) != "...." :
+            #here should be reset the timeout..
+            self.timer.start() #check how can be reset to INITAL value
+                
             
 
 class FactryStateMachine():

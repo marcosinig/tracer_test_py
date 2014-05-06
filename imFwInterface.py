@@ -57,8 +57,11 @@ class FwCommands():
 
 class EventMsg():
     def __init__(self, line, event, str1=""):
+        #uart line that has generate the event
         self.line=line
+        #event name
         self.event=event
+        #optional parameter
         self.str1 = str1
     
     def isErrorEvent(self):
@@ -102,6 +105,16 @@ class EventMsg():
     def __str__(self):
         return "Event= " + self.event + " line= " + self.line 
      
+
+class AutoEvents():
+    """ 
+    Events generates by state machine
+    """
+    def evFwAutoStuck(self, str):
+        return (EventMsg(str, function_name()))
+    def evAtAutoStuck(self, str):
+        return (EventMsg(str, function_name()))
+        
 
 class ShellEvents(Observable, Parseble):
     
