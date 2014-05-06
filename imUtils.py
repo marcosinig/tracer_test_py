@@ -69,74 +69,74 @@ class UartLine():
     
     def __str__(self):
         return  self.timestamp + "-" + self.line 
-        
-class Uart2(threading.Thread, Observable):
-                
-    def __init__(self, port, myTime):                
-        threading.Thread.__init__(self)
-        Observable.__init__(self) 
-        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
-        
-        self._myTime = myTime
-        self._serial_ref=None                
-        self._uart_port=port         
-        self._stop = threading.Event() 
-        
-    def __del__(self):
-        self._log.debug("Called del ")
-        self._stop.set()       
-        if self._serial_ref != None:
-            self._serial_ref.close()
-    
-    def close(self):
-          self._log.debug("Called del ")
-          self._stop.set()       
-          if self._serial_ref != None:
-            self._serial_ref.close()
-    
-    def open_ser(self):
-        try:
-            self._serial_ref = serial.Serial(self._uart_port , baudrate=115200)
-        except:
-            self._log.error("Error on opening port "+ self._uart_port) 
-            self.stop()            
-            raise Exception("Error on opening port "+ self._uart_port);
-     
-    def stop(self):
-        self._log.debug("Called Stop ")
-        self._stop.set()       
-        if self._serial_ref != None:
-            self._serial_ref.close()
-    
-    def write(self,str):        
-        if self._serial_ref == None:
-            raise Exception("Uart not open")         
-        try:            
-            self._serial_ref.write(str + "\r\n")
-        except:
-            self._log.error( "Error on writing on port "+ self._uart_port) 
-            self.stop()
-            raise Exception("Error on writing port "+ self._uart_port);
-    
-    def _readlineCR(self):
-        rv = ""    
-        while True:
-            #if (self._serial_ref.inWaiting() > 0) :
-            try:
-                ch = self._serial_ref.read()
-            except:
-                self._log.error("Error on reading on port "+ self._uart_port) 
-                self._serial_ref.close()
-                raise Exception("Error on reading port "+ self._uart_port);
-                    
-            rv += ch
-            if ch=='\n':
-                return rv
-    
-    def run(self):
-        while True:        
-            rcv = self._readlineCR()            
-            self.fire_action(UartLine(myTime.getTime(), rcv))
+#         
+# class Uart2(threading.Thread, Observable):
+#                 
+#     def __init__(self, port, myTime):                
+#         threading.Thread.__init__(self)
+#         Observable.__init__(self) 
+#         self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
+#         
+#         self._myTime = myTime
+#         self._serial_ref=None                
+#         self._uart_port=port         
+#         self._stop = threading.Event() 
+#         
+#     def __del__(self):
+#         self._log.debug("Called del ")
+#         self._stop.set()       
+#         if self._serial_ref != None:
+#             self._serial_ref.close()
+#     
+#     def close(self):
+#           self._log.debug("Called del ")
+#           self._stop.set()       
+#           if self._serial_ref != None:
+#             self._serial_ref.close()
+#     
+#     def open_ser(self):
+#         try:
+#             self._serial_ref = serial.Serial(self._uart_port , baudrate=115200)
+#         except:
+#             self._log.error("Error on opening port "+ self._uart_port) 
+#             self.stop()            
+#             raise Exception("Error on opening port "+ self._uart_port);
+#      
+#     def stop(self):
+#         self._log.debug("Called Stop ")
+#         self._stop.set()       
+#         if self._serial_ref != None:
+#             self._serial_ref.close()
+#     
+#     def write(self,str):        
+#         if self._serial_ref == None:
+#             raise Exception("Uart not open")         
+#         try:            
+#             self._serial_ref.write(str + "\r\n")
+#         except:
+#             self._log.error( "Error on writing on port "+ self._uart_port) 
+#             self.stop()
+#             raise Exception("Error on writing port "+ self._uart_port);
+#     
+#     def _readlineCR(self):
+#         rv = ""    
+#         while True:
+#             #if (self._serial_ref.inWaiting() > 0) :
+#             try:
+#                 ch = self._serial_ref.read()
+#             except:
+#                 self._log.error("Error on reading on port "+ self._uart_port) 
+#                 self._serial_ref.close()
+#                 raise Exception("Error on reading port "+ self._uart_port);
+#                     
+#             rv += ch
+#             if ch=='\n':
+#                 return rv
+#     
+#     def run(self):
+#         while True:        
+#             rcv = self._readlineCR()            
+#             self.fire_action(UartLine(myTime.getTime(), rcv))
 
 class Uart(threading.Thread, Observable):
                 
@@ -214,7 +214,9 @@ class LogFile():
         sys.stdout.flush()
     
     def __init__(self, folder, time):        
-        self._myTime = time      
+        self._myTime = time   
+        self._logfile = None   
+        self._logEvent  = None
                 
         location =os.path.dirname(os.path.realpath(__file__))  +  "/" + folder
         if not os.path.exists(location):
@@ -229,6 +231,9 @@ class LogFile():
         self._logEvent  = open(os.path.join(location, 'logEvents_' + self._myTime.getLogStr()  +'.txt'), 'w')            
         self._logEvent.write("\n")
         self._logEvent.flush()
+        
+        print "Writing log uart file in " + self._logfile.name
+        print "Writing log Event file in " + self._logEvent.name
         
     def logEv(self, type, str):
         self.LogType[type](str)

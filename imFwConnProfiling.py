@@ -21,19 +21,18 @@ Improvements:
 
 '''
 
-from imUtils  import *
-from imFwInterface import *
-from imStateMachine import *
+import imUtils  
+#import imFwInterface 
+import imStateMachine
 import logging
 import copy
+from  imUtils import function_name
 
-#SHOULD NOT BE USED
-#HAS TO BE INVESTIGATED
-logger = logging.getLogger(__name__)        
-configureLog(logger)
+log = imUtils.logging.getLogger(__name__)        
+imUtils.configureLog(log)
 
 
-class regHandlerConn(Parseble):
+class regHandlerConn(imUtils.Parseble):
     """
     function names are called in base of shell and mqtt events
     
@@ -215,7 +214,7 @@ class ConnEvents():
     class ConnProfileEv(object):
         def __init__(self, connEvents, msg, ev, status_p = None, errors_ev_list = None):
             #obj has to implement to string
-            self.timestamp = myTime.getTimestamp()
+            self.timestamp = imUtils.myTime.getTimestamp()
             self.connEvents = connEvents
             self.msg = msg
             self.ev = ev
@@ -260,7 +259,7 @@ class ConnEvents():
     def addProfExEv(self, ev):
         #self._log.info(function_name())
         #self._log.info(ev.getSource() +": Error in state " + state + "ev: " + ev)
-        profEv = ConnEvents.ConnProfExEv(myTime.getTimestamp(), ev ) 
+        profEv = ConnEvents.ConnProfExEv(imUtils.myTime.getTimestamp(), ev ) 
         self.eventsException.append(ev)  
     
     def addProfEv(self, ev):
@@ -293,13 +292,13 @@ class ConnProfiling():
             self.data = { 'state_Name': stateName,'numTimes':0, 'total_time':0, 'session_ts':None, 'session_min':0 }            
         
         def enter(self):               
-            self.data['session_ts'] = myTime.getTimestamp()
+            self.data['session_ts'] = imUtils.myTime.getTimestamp()
             self.data['numTimes'] += 1 
             return  self.data['numTimes']
         
         def exit(self):
             if self.data['session_ts'] != None:
-                self.data['session_min'] = myTime.getDiffNowMin( self.data['session_ts']  )
+                self.data['session_min'] = imUtils.myTime.getDiffNowMin( self.data['session_ts']  )
                 self.data['total_time'] +=  self.data['session_min']
                 self.data['session_ts'] = None
         
@@ -334,7 +333,7 @@ class ConnProfiling():
         self._log.info(function_name())
         
         if self.on_session_t != None:
-            self.on_total_t = myTime.getDiffNowMin( self.on_session_t  )        
+            self.on_total_t = imUtils.myTime.getDiffNowMin( self.on_session_t  )        
             #print on_total_t and on_session_t
             pass
             profEv = self.connEvents.ConnProfileEv(self, "Switching off", ev)
@@ -345,7 +344,7 @@ class ConnProfiling():
                                     
     def off_exit(self, ev):
         self._log.info(function_name())         
-        self.on_session_t = myTime.getTimestamp()                
+        self.on_session_t = imUtils.myTime.getTimestamp()                
         profEv = self.connEvents.ConnProfileEvEx(self, "Switched On", ev, self.disconnected_p)
         self.connEvents.addProfEv(profEv)
     
@@ -461,7 +460,7 @@ class ConnProfiling():
 
 
 
-class Off_state(StateFath):
+class Off_state(imStateMachine.StateFath):
     
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
@@ -478,7 +477,7 @@ class Off_state(StateFath):
         
         return newState   
 
-class Disconnected_state(StateFath):
+class Disconnected_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
         
@@ -504,7 +503,7 @@ class Disconnected_state(StateFath):
                 
         return newState   
 
-class Gprs_state(StateFath):
+class Gprs_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
             
@@ -529,7 +528,7 @@ class Gprs_state(StateFath):
         
         return newState
     
-class Provosioning_state(StateFath):
+class Provosioning_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
             
@@ -549,7 +548,7 @@ class Provosioning_state(StateFath):
         
         return newState
 
-class Ssl_state(StateFath):
+class Ssl_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
             
@@ -568,7 +567,7 @@ class Ssl_state(StateFath):
         
         return newState
 
-class MqttConn_state(StateFath):
+class MqttConn_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
         
@@ -589,7 +588,7 @@ class MqttConn_state(StateFath):
         
         return newState
 
-class Online_state(StateFath):
+class Online_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
             
@@ -612,7 +611,7 @@ class Online_state(StateFath):
 class FactryStateMachine():
     def __init__(self, logEv):
         
-        self.sm = StateMachine()
+        self.sm = imStateMachine.StateMachine()
         self.ce = ConnEvents()
         
         

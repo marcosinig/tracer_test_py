@@ -8,7 +8,8 @@ import time
 import re
 import sys
 
-from imUtils import *
+from  imUtils import function_name
+import imUtils
 
 class FwCommands():
 
@@ -93,7 +94,7 @@ class EventMsg():
         return "Event= " + self.event + " line= " + self.line 
      
 
-class ShellEvents(Observable, Parseble):
+class ShellEvents(imUtils.Observable, imUtils.Parseble):
     
     def __init__(self):
         super(self.__class__, self).__init__()

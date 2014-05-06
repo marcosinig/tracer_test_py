@@ -28,9 +28,7 @@ __version__ = 0.1
 __date__ = '2014-05-02'
 __updated__ = '2014-05-02'
 
-DEBUG = 1
-TESTRUN = 0
-PROFILE = 0
+DEBUG = 1 
 
 class CLIError(Exception):
     '''Generic exception to raise and log different fatal errors.'''
@@ -57,57 +55,50 @@ def main(argv=None): # IGNORE:C0111
     program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
     program_license = '''%s
 
-  Created by user_name on %s.
-  Copyright 2014 organization_name. All rights reserved.
-
-  Licensed under the Apache License 2.0
-  http://www.apache.org/licenses/LICENSE-2.0
-
-  Distributed on an "AS IS" basis without warranties
-  or conditions of any kind, either express or implied.
 
 USAGE
-''' % (program_shortdesc, str(__date__))
+''' #% (program_shortdesc, str(__date__))
 
     try:
         # Setup argument parser
         parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument("-c", "--COM", dest="COM", action="store_true", help="specify com port")
-        parser.add_argument("-in", "--File_input", dest="file_input", help="specify file input to parse" )
+        
+        parser.add_argument("-o", "--output", dest="ouput", action="store_true", help="Specify output direcotry")
+        #add or statement
+        group = parser.add_mutually_exclusive_group(required=True)        
+        group.add_argument("-c", "--COM", dest="com", action="store_true", help="specify com port")
+        group.add_argument("-f", "--path_file", dest="path_file", help="specify file to parse" )
+        
         parser.add_argument("-v", "--verbose", dest="verbose", action="count", help="set verbosity level [default: %(default)s]")
-
-        #parser.add_argument("-e", "--exclude", dest="exclude", help="exclude paths matching this regex pattern. [default: %(default)s]", metavar="RE" )
         parser.add_argument('-V', '--version', action='version', version=program_version_message)
+        
         #parser.add_argument(dest="paths", help="paths to folder(s) with source file(s) [default: %(default)s]", metavar="path", nargs='+')
 
         # Process arguments
         args = parser.parse_args()
-
-        paths = args.paths
+        ouput = args.ouput
+        path_file = args.path_file
         verbose = args.verbose
+        com = args.com
         #recurse = args.recurse
         #inpat = args.include
         #expat = args.exclude
 
         if verbose > 0:
-            print("Verbose mode on")
-            if recurse:
-                print("Recursive mode on")
-            else:
-                print("Recursive mode off")
+            print "Verbose mode on:" 
+            print "Output directory " + ouput
+            print "Uart com " + com
+            print "fila path " + path_file
 
-        if inpat and expat and inpat == expat:
-            raise CLIError("include and exclude pattern are equal! Nothing will be processed.")
+            
+        print "OKKKKKKKKKKKKKKKKKK"
 
-        for inpath in paths:
-            ### do something with inpath ###
-            print(inpath)
         return 0
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
         return 0
     except Exception, e:
-        if DEBUG or TESTRUN:
+        if DEBUG :
             raise(e)
         indent = len(program_name) * " "
         sys.stderr.write(program_name + ": " + repr(e) + "\n")

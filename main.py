@@ -143,7 +143,7 @@ def startParseLogFile():
     #logPath =  os.path.dirname(os.path.realpath(__file__))  
     logPath = os.getcwd()
     #logPath = logPath + "\\fw_logs\\log_13_03_multiple_send.txt"
-    logPath = logPath + "//fw_logs//log_13_03_multiple_send.txt"
+    logPath = os.path.join (logPath + 'fw_logs' + 'log_13_03_multiple_send.txt')
     #logPath = "C:\\Users\\i'm Developer\\Documents\\log_imhere\\connction_problem\\log_sos_2_23_04.txt"
     log.info("Starting ParseLogFile file: " + logPath);
 
