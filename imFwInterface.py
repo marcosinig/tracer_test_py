@@ -7,9 +7,13 @@ Created on 7 Apr 2014
 import time
 import re
 import sys
+import threading 
 
 from  imUtils import function_name
 import imUtils
+
+log = imUtils.logging.getLogger(__name__)        
+imUtils.configureLog(log)
 
 class FwCommands():
 
@@ -27,35 +31,185 @@ class FwCommands():
     
     def disable_atflow(self):
         self.__uart.write("atflow" + " 0")                         
-    
-    def switchon(self):
-        self.__uart.write("sim" + " btns")    
-        
+            
     def reset(self):
         self.__uart.write("sim" + " reset")
         
     def help(self):
         self.__uart.write("help")
     
-    def gsm(self,str):
-        self.__uart.write("uart"+ " " + str)
+    def gsm(self):
+        self.__uart.write("gsm")
         
     def FwEnableTraces(self):
         self.enable_trace()
         self.enable_atflow()
     
     def simBtns(self):
-        self.switchon()
+        self.__uart.write("sim" + " btns")    
+    
+    def switchGps(self, status):
+        if status == "on" :
+            self.__uart.write("gpio 10 0")
+        elif status == "off":
+            self.__uart.write("gpio 10 1")
         
-    def onGsm(self):
+    def switchGsm(self):                
+        self.__uart.write("gpio 12 1")
+        time.sleep(1)
         self.__uart.write("gpio 12 0")
         time.sleep(1)
-        self.__uart.write("gpio 10 1")
-        time.sleep(1)
-        self.__uart.write("gpio 10 0")
-        time.sleep(1)
-        
+    
 
+class AtError(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+class AtCommands():
+    
+    def __init__(self, uart):
+        self.__uart=uart
+        self._log = imUtils.logging.getLogger(__name__ + "." + self.__class__.__name__)
+        
+        self.listEvExp = None
+        self.eventWait = threading.Event()     
+        self.timer = None
+        self.evRecv = None
+    
+    def parseEv(self, evRecv):
+        self._log.debug("Parsing ev " + str(evRecv)) 
+        if (self.listEvExp != None):
+            for ev in self.listEvExp:
+                self.evRecv = evRecv  
+                if evRecv.event ==  ev:                      
+                    self.releaseWait() 
+                elif evRecv.event == "evAtError":
+                    
+                    self.raiseError("Received " + evRecv.event + " instead of ")                    
+                #else:                
+                #    self.raiseError("Received " + evRecv.event + " instead of ")
+    
+    def setWaitEv(self, listEvExp):
+        self.listEvExp = listEvExp
+    
+    def cleanWaitEv(self):
+        self.listEvExp = None
+        
+    def raiseError(self, strEr):
+        self.cleanWaitEv()        
+        raise AtError(strEr + str(self.listEvExp))
+   
+    def releaseWait(self):
+        self.timer.cancel()                 
+        self._log.debug("Mutex will be released")
+        self.eventWait.set()              
+    
+    def waitEv(self, timeout):
+        self.timer = threading.Timer(timeout, self.raiseError, ["Timeout waiting "])
+        self._log.debug("wait for timeout" + str (timeout))        
+        self.timer.start()
+        self.eventWait.clear()
+        self.eventWait.wait()
+        self._log.debug("get Out from wait" + str (timeout))
+        
+    def gsmCmee(self): 
+        self._log.debug("gpsp")
+        
+        self.__uart.write("gsm  AT+CMEE=2")       
+        self.setWaitEv(["evAtOk"])        
+        self.waitEv(2.0)
+        return
+
+    def gsmAtReboot(self):
+        self.__uart.write("gsm  at#reboot")
+        self.setWaitEv(["evAtOk"])        
+        self.waitEv(2.0)
+        time.sleep(4)
+        return  
+   
+    
+    def isGsmOn(self):
+        self._log.debug("isGsmOn")
+        
+        self.__uart.write("gpio 2")
+        self.setWaitEv(["evFwGpio"])
+        self.waitEv(1.0)        
+        if (self.evRecv.str1 == '1'):
+            return True
+        else: 
+            return False
+
+    def gsmAtQss2(self): 
+        self._log.debug("gpsp")
+        
+        self.__uart.write("gsm  AT#QSS=2")       
+        self.setWaitEv(["evAtOk"])        
+        self.waitEv(2.0)
+        return
+
+    def gsmAtQssWait(self): 
+        self._log.debug("gsmAtQssWait")
+        
+        self.__uart.write("gsm  AT#QSS?")       
+        self.setWaitEv(["evAtQss"])
+        self.waitEv(2.0)
+        while True:   
+            if self.evRecv.str1 == "2,1" :
+                time.sleep(1)
+            elif  self.evRecv.str1 == "3" : 
+                break                        
+        return
+   
+                
+    def gpsp(self, state): 
+        self._log.debug("gpsp")
+        
+        self.__uart.write("gsm AT$GPSP=" + str(state))       
+        self.setWaitEv(["evAtOk"])        
+        self.waitEv(2.0)
+        return
+    
+    def gsmSgActOn(self): 
+        self._log.debug("gpsp")        
+        
+        while( True ):
+            self.__uart.write("gsm AT#SGACT=1,1,"",""")       
+            self.setWaitEv(["evAtSgactAns", "evAtCmeError"])        
+            self.waitEv(4.0)
+            if self.evRecv.event == "evAtCmeError" and "context already activated" in self.evRecv.str1 :
+                break
+            if self.evRecv.event == "evAtCmeError" :
+                time.sleep(1)
+            elif self.evRecv.event == "evAtSgactAns":
+                break
+        return    
+
+    def gpsAcp(self): 
+        self._log.debug("gpsAcp")
+        
+        self.__uart.write("gsm AT$GPSACP")       
+        self.setWaitEv(["evAtGpsacp"])        
+        self.waitEv(2.0)
+        if self.evRecv.str1 == "" :
+            #TODO HOW TO MANAGE IT ???
+            #should start from the beginning
+            self._log.debug("ERROR gpsAcp")
+        return     
+    
+    def gpsM2mLocate(self):
+        self._log.debug("gpsM2mLocate")
+        
+        self.__uart.write("gsm AT#AGPSSND")       
+        self.setWaitEv(["evAtAgpsRing"])        
+        self.waitEv(3.0)
+        
+        return     
+        
+     
+     
+        
 class EventMsg():
     def __init__(self, line, event, str1=""):
         self.line=line
@@ -90,22 +244,60 @@ class EventMsg():
         #evAtCmeError -> At
         return  self.event[2:5]
         
-    def __str__(self):
-        return "Event= " + self.event + " line= " + self.line 
+    def __str__(self):        
+        return "Event= " + self.event + " line= " + self.line + " str = " +self.str1 
      
 
 class ShellEvents(imUtils.Observable, imUtils.Parseble):
     
     def __init__(self):
         super(self.__class__, self).__init__()
+
+    def evFwGpio(self, str):
+        if "gpio" in str:
+            splitted_txt = str.split( )
+            if len(splitted_txt) == 6 :
+                self.fire_action(EventMsg(str, function_name(), splitted_txt[5]))      
+                return True
+        return False   
+    
+    def evAtOk(self, str):
+        if "OK" in str:
+            self.fire_action(EventMsg(str, function_name()))      
+            return True
+        return False 
                     
     def evAtCmeError(self, str):
-        pat = "(.+) (\+CME ERROR:) (.*)"
+        pat = "(\+CME ERROR:) (.*)"
+        matchObj = (re.match( pat, str, re.M)) 
+        if matchObj: 
+            self.fire_action(EventMsg(str, function_name(), matchObj.group(2)))      
+            return True
+        return False
+    
+    #TODO: It has to be parsed with CME since it matches with CME ERROR
+    def evAtError(self, str):
+        pat = "ERROR"
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
             self.fire_action(EventMsg(str, function_name()))      
             return True
+        return False
+    
+    def evAtQss(self, str):
+        if "#QSS:" in str:
+            splitted_txt = str.split( )
+            self.fire_action(EventMsg(str, function_name(), splitted_txt[1]))      
+            return True
         return False   
+    
+    def evAtAgpsRing(self, str):
+        if "#AGPSRING:" in str:
+            splitted_txt = str.split( )
+            self.fire_action(EventMsg(str, function_name(), splitted_txt[1]))      
+            return True
+        return False           
+       
     def evFwSysGpsStartupFailed(self, str):
         if "GPS configuration failed" in str:
             self.fire_action(EventMsg(str, function_name()))        
@@ -138,10 +330,10 @@ class ShellEvents(imUtils.Observable, imUtils.Parseble):
             return True
         return False                            
     def evAtGpsacp(self, str):                        
-        pat = "(AT\$GPSACP)(.*)"                
+        pat = "(\$GPSACP:)(.*)"                
         matchObj = (re.match( pat, str, re.M)) 
         if matchObj: 
-            self.fire_action(EventMsg(str, function_name()))
+            self.fire_action(EventMsg(str, function_name(), matchObj.group(2)))
             return True
         return False    
     def evAtSgactQuery(self, str):
@@ -302,7 +494,7 @@ class ShellEvents(imUtils.Observable, imUtils.Parseble):
                        
                  
 def test_print(ev):
-    print "Found " + str(ev)
+    print "Found " + str(ev) 
 
 def test_ShellEvents():
     sh = ShellEvents()
@@ -313,6 +505,11 @@ def test_ShellEvents():
     #str = " +CME ERROR: sss"
     #str = "#CCID  1 "
     str = "AT#SSLD=1,8883,54.204.45.147,1,1"
+    str = "gpio  2 I        GSM_POWERGOOD B01 1"
+    str = "+CME ERROR: context already activated"
+    #str = "ERROR"
+    str = "#QSS: 2,1"
+    #str = "#QSS: 3"
 
     sh.callAllFunc(str)
 
