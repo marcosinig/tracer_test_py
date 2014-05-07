@@ -4,7 +4,7 @@ Created on 7 Apr 2014
 @author: marco
 '''
 
-import time
+import time,datetime
 import re
 import sys
 import threading 
@@ -54,11 +54,7 @@ class FwCommands():
         elif status == "off":
             self.__uart.write("gpio 10 1")
         
-    def switchGsm(self):                
-        self.__uart.write("gpio 12 1")
-        time.sleep(1)
-        self.__uart.write("gpio 12 0")
-        time.sleep(1)
+    
     
 
 class AtError(Exception):
@@ -66,6 +62,15 @@ class AtError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
+class AtNoConn(AtError):
+    def __init__(self, value):
+        AtError.__init__(self, value)
+class AtTimeout(AtError):
+    def __init__(self, value):
+        AtError.__init__(self, value)
+class AtEvNotExpect(AtError):
+    def __init__(self, value):
+        AtError.__init__(self, value)
 
 class AtCommands():
     
@@ -85,9 +90,8 @@ class AtCommands():
                 self.evRecv = evRecv  
                 if evRecv.event ==  ev:                      
                     self.releaseWait() 
-                elif evRecv.event == "evAtError":
-                    
-                    self.raiseError("Received " + evRecv.event + " instead of ")                    
+                elif evRecv.event == "evAtError":                    
+                    self.raisErrEv("Received " + evRecv.event + " instead of ")                    
                 #else:                
                 #    self.raiseError("Received " + evRecv.event + " instead of ")
     
@@ -97,9 +101,14 @@ class AtCommands():
     def cleanWaitEv(self):
         self.listEvExp = None
         
-    def raiseError(self, strEr):
-        self.cleanWaitEv()        
-        raise AtError(strEr + str(self.listEvExp))
+    def raisErrTimeout(self, strEr):
+        #self.cleanWaitEv()               
+        raise AtTimeout(strEr + str(self.listEvExp))
+    
+    def raisErrEv(self, strEr):
+        #self.cleanWaitEv()   
+        self.timer.cancel()     
+        raise AtEvNotExpect(strEr + str(self.listEvExp))
    
     def releaseWait(self):
         self.timer.cancel()                 
@@ -107,12 +116,22 @@ class AtCommands():
         self.eventWait.set()              
     
     def waitEv(self, timeout):
-        self.timer = threading.Timer(timeout, self.raiseError, ["Timeout waiting "])
+        self.timer = threading.Timer(timeout, self.raisErrTimeout, ["Timeout waiting "])
         self._log.debug("wait for timeout" + str (timeout))        
         self.timer.start()
         self.eventWait.clear()
         self.eventWait.wait()
         self._log.debug("get Out from wait" + str (timeout))
+        
+        
+    def switchOnGsm(self):                
+        self.__uart.write("gpio 12 1")
+        time.sleep(1)
+        self.__uart.write("gpio 12 0")
+        self.setWaitEv(["evAtHostEEFiles"])        
+        self.waitEv(6.0)
+        return  
+        
         
     def gsmCmee(self): 
         self._log.debug("gpsp")
@@ -126,7 +145,16 @@ class AtCommands():
         self.__uart.write("gsm  at#reboot")
         self.setWaitEv(["evAtOk"])        
         self.waitEv(2.0)
-        time.sleep(4)
+        self.setWaitEv(["evAtHostEEFiles"])        
+        self.waitEv(6.0)
+        return  
+    
+    def gsmGpioReboot(self):
+        self.__uart.write("gpio 15 1")
+        time.sleep(1)
+        self.__uart.write("gpio 15 0")
+        self.setWaitEv(["evAtHostEEFiles"])        
+        self.waitEv(6.0)
         return  
    
     
@@ -156,9 +184,9 @@ class AtCommands():
         self.setWaitEv(["evAtQss"])
         self.waitEv(2.0)
         while True:   
-            if self.evRecv.str1 == "2,1" :
+            if self.evRecv.str1 != "3" :
                 time.sleep(1)
-            elif  self.evRecv.str1 == "3" : 
+            else:            
                 break                        
         return
    
@@ -185,6 +213,14 @@ class AtCommands():
             elif self.evRecv.event == "evAtSgactAns":
                 break
         return    
+    
+    def gsmSetClk(self):
+        self._log.debug("gsmClk")                    
+        self.__uart.write("gsm AT+CCLK=\"" + datetime.datetime.now().strftime("%y/%m/%d,%H:%M:%S+00")  + "\"" )       
+        self.setWaitEv(["evAtOk"])        
+        self.waitEv(3.0)    
+        return
+            
 
     def gpsAcp(self): 
         self._log.debug("gpsAcp")
@@ -202,11 +238,23 @@ class AtCommands():
         self._log.debug("gpsM2mLocate")
         
         self.__uart.write("gsm AT#AGPSSND")       
-        self.setWaitEv(["evAtAgpsRing"])        
-        self.waitEv(3.0)
+        self.setWaitEv(["evAtAgpsRing", "evAtCmeError"])        
+        self.waitEv(100.0)
+        
+        if self.evRecv.event== "evAtCmeError" and (" Can not resolve name" in self.evRecv.line  or " operation not supported" in self.evRecv.line ):
+            raise AtNoConn("Not connected")
         
         return     
         
+    def gpsInit(self):
+        self._log.debug("gpsInit ")
+        
+        
+        self.__uart.write("gsm AT$GPSINIT")       
+        self.setWaitEv(["evAtOk"])        
+        self.waitEv(1.0)
+        
+        return
      
      
         
