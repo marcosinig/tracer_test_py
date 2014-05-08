@@ -75,6 +75,9 @@ def testGpsInit(sessMng):
     #sessMng.fwCmd.reset()
     #time.sleep(1)
     #TODO: when uart is remount problem with ROOT access
+    
+    #sessMng.atCmd.testWaitEv()
+    
     sessMng.fwCmd.FwEnableTraces()
     time.sleep(1)
     if (sessMng.atCmd.isGsmOn()):
@@ -98,7 +101,7 @@ def testGpsInit(sessMng):
     #sessMng.atCmd.gsmSgActOn()
     
     for loop in range(100):        
-        log.info("Interaction num "+ str(loop) )
+        log.info("LOOP num "+ str(loop) )
         
         
         sessMng.atCmd.gpsp(1)
@@ -111,16 +114,17 @@ def testGpsInit(sessMng):
         #for i in range(10):
         #    sessMng.atCmd.gpsAcp()
         try: 
-            sessMng.atCmd.gpsM2mLocate()
+            ret = sessMng.atCmd.gpsM2mLocate()
         except imFwInterface.AtNoConn:            
                 sessMng.atCmd.gsmSgActOn()
                 continue           
         except imFwInterface.AtTimeout : 
                 continue
-            
-        sessMng.atCmd.gpsInit()           
+        
+        if ret == "Ok" :    
+            sessMng.atCmd.gpsInit()           
         sessMng.atCmd.gpsp(0)
-
+        time.sleep(1)
 
 
 def startFwTests():
@@ -141,7 +145,6 @@ def startFwTests():
     #    print e
     #    sessMng.close()
     
-    time.sleep(1)
     sessMng.close()
 
 

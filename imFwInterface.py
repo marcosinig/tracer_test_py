@@ -82,6 +82,7 @@ class AtCommands():
         self.eventWait = threading.Event()     
         self.timer = None
         self.evRecv = None
+        self.waitTimError = None
     
     def parseEv(self, evRecv):
         self._log.debug("Parsing ev " + str(evRecv)) 
@@ -102,8 +103,11 @@ class AtCommands():
         self.listEvExp = None
         
     def raisErrTimeout(self, strEr):
+        #function called when timeout is expired        
         #self.cleanWaitEv()               
-        raise AtTimeout(strEr + str(self.listEvExp))
+        #raise AtTimeout(strEr + str(self.listEvExp))
+        self.waitTimError = strEr
+        self.eventWait.set()
     
     def raisErrEv(self, strEr):
         #self.cleanWaitEv()   
@@ -111,11 +115,13 @@ class AtCommands():
         raise AtEvNotExpect(strEr + str(self.listEvExp))
    
     def releaseWait(self):
+        #called when the event is received
         self.timer.cancel()                 
         self._log.debug("Mutex will be released")
         self.eventWait.set()              
     
     def waitEv(self, timeout):
+        self.waitTimError = None
         self.timer = threading.Timer(timeout, self.raisErrTimeout, ["Timeout waiting "])
         self._log.debug("wait for timeout" + str (timeout))        
         self.timer.start()
@@ -123,6 +129,16 @@ class AtCommands():
         self.eventWait.wait()
         self._log.debug("get Out from wait" + str (timeout))
         
+        self.timer.join()
+        if self.waitTimError != None :
+            raise AtTimeout(self.waitTimError + str(self.listEvExp))
+
+
+    def testWaitEv(self):                
+        
+        self.setWaitEv(["NullEv"])        
+        self.waitEv(6.0)
+        return  
         
     def switchOnGsm(self):                
         self.__uart.write("gpio 12 1")
@@ -244,18 +260,18 @@ class AtCommands():
         if self.evRecv.event== "evAtCmeError" and (" Can not resolve name" in self.evRecv.line  or " operation not supported" in self.evRecv.line ):
             raise AtNoConn("Not connected")
         
-        return     
+        list = self.evRecv.str1.split(",")
+        if list[0] == "200" :
+            return "Ok"
+        
+        return 
         
     def gpsInit(self):
-        self._log.debug("gpsInit ")
-        
-        
+        self._log.debug("gpsInit ")                
         self.__uart.write("gsm AT$GPSINIT")       
         self.setWaitEv(["evAtOk"])        
-        self.waitEv(1.0)
-        
-        return
-     
+        self.waitEv(1.0)        
+        return     
      
         
 class EventMsg():
