@@ -22,10 +22,10 @@ Improvements:
 '''
 
 import imUtils  
-#import imFwInterface 
+import imFwInterface 
 import imStateMachine
 import logging
-import copy
+import copy,threading
 from  imUtils import function_name
 
 log = imUtils.logging.getLogger(__name__)        
@@ -459,15 +459,15 @@ class ConnProfiling():
     def set_ip(self, ip):
         self.ip = ip
 
-class AtStuck_state(StateFath):
+class AtStuck_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
 
-class FwStuck_state(StateFath):
+class FwStuck_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
                 
-class Undef_state(StateFath):
+class Undef_state(imStateMachine.StateFath):
     """
     State used for defining if the tracer is already switched on or off
     If it is off, goes to off_state
@@ -478,7 +478,7 @@ class Undef_state(StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
         self.startState = True 
-        self.timer = Timer(Undef_state.timeout_exit_state, self.gotoOff)
+        self.timer = threading.Timer(Undef_state.timeout_exit_state, self.gotoOff)
     
     def gotoOff(self):
             print "timeout expired!"
@@ -664,14 +664,14 @@ class Check_Tracer_Status():
     def __init__(self, stateMachine):
         self.fw_commands = 0
         self.sm = stateMachine
-        self.timer = Timer(Check_Tracer_Status.timeout_fw_stuck, self.no_activity_handler)
+        self.timer = threading.Timer(Check_Tracer_Status.timeout_fw_stuck, self.no_activity_handler)
         
     
     def no_activity_handler(self):
         #function to be schedule after xsec timeout
         print "firmware seems to be stcuk"
         #TODO: string = !!!!
-        sm.change_state("FwStuck_state", AutoEvents.evFwAutoStuck(str ))
+        self.sm.change_state("FwStuck_state", imFwInterface.AutoEvents.evFwAutoStuck(str ))
         
     def process(self, event):
         if event.isAtEvent() :
@@ -681,9 +681,9 @@ class Check_Tracer_Status():
         if self.fw_commands > Check_Tracer_Status.fw_command_threshold:
             print "at command interface seems to be stcuk!!"
             #TODO: str = !!!!
-            sm.change_state("AtStuck_state", AutoEvents.evAtAutoStuck( str))
+            self.sm.change_state("AtStuck_state", imFwInterface.AutoEvents.evAtAutoStuck( str))
         
-        if str(sm.get_CurrentState) != "...." :
+        if str(self.sm.get_CurrentState) != "...." :
             #here should be reset the timeout..
             self.timer.start() #check how can be reset to INITAL value
                 
