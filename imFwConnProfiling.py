@@ -28,8 +28,10 @@ import logging
 import copy,threading
 from  imUtils import function_name
 
+
 log = imUtils.logging.getLogger(__name__)        
 imUtils.configureLog(log)
+
 
 
 
@@ -459,6 +461,7 @@ class ConnProfiling():
     def set_ip(self, ip):
         self.ip = ip
 
+
 class AtStuck_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
@@ -499,7 +502,6 @@ class Off_state(imStateMachine.StateFath):
     
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
-        
         
     def processEv(self, event):
         newState = None
@@ -603,6 +605,7 @@ class Ssl_state(imStateMachine.StateFath):
         return newState
 
 
+
 class MqttConn_state(imStateMachine.StateFath):
 
     def __init__(self, obs):
@@ -664,13 +667,14 @@ class Check_Tracer_Status():
     def __init__(self, stateMachine):
         self.fw_commands = 0
         self.sm = stateMachine
-        self.timer = threading.Timer(Check_Tracer_Status.timeout_fw_stuck, self.no_activity_handler)
-        
+
+        self.timer = threading.Timer(Check_Tracer_Status.timeout_fw_stuck, self.no_activity_handler)        
     
     def no_activity_handler(self):
         #function to be schedule after xsec timeout
         print "firmware seems to be stcuk"
         #TODO: string = !!!!
+
         self.sm.change_state("FwStuck_state", imFwInterface.AutoEvents.evFwAutoStuck(str ))
         
     def process(self, event):

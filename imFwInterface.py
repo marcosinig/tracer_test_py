@@ -325,7 +325,6 @@ class EventMsg():
         return "Event= " + self.event + " line= " + self.line + " str = " +self.str1 
      
 
-
 class AutoEvents():
     """ 
     Events generates by state machine
@@ -335,6 +334,7 @@ class AutoEvents():
     def evAtAutoStuck(self, str):
         return (EventMsg(str, function_name()))
         
+
 
 class ShellEvents(imUtils.Observable, imUtils.Parseble):
     
@@ -580,7 +580,7 @@ class ShellEvents(imUtils.Observable, imUtils.Parseble):
             return True
         return False
                        
-                 
+                
 
 def test_print(ev):
     print "Found " + str(ev) 
