@@ -15,48 +15,7 @@ import imUtils
 log = imUtils.logging.getLogger(__name__)        
 imUtils.configureLog(log)
 
-class FwCommands():
-
-    def __init__(self, uart):
-        self.__uart=uart
-
-    def enable_trace(self):
-        self.__uart.write("trace" + " 2")
     
-    def disable_trace(self):
-        self.__uart.write("trace" + " 0")                        
-    
-    def enable_atflow(self):
-        self.__uart.write("atflow" + " 1")
-    
-    def disable_atflow(self):
-        self.__uart.write("atflow" + " 0")                         
-            
-    def reset(self):
-        self.__uart.write("sim" + " reset")
-        
-    def help(self):
-        self.__uart.write("help")
-    
-    def gsm(self):
-        self.__uart.write("gsm")
-        
-    def FwEnableTraces(self):
-        self.enable_trace()
-        self.enable_atflow()
-    
-    def simBtns(self):
-        self.__uart.write("sim" + " btns")    
-    
-    def switchGps(self, status):
-        if status == "on" :
-            self.__uart.write("gpio 10 0")
-        elif status == "off":
-            self.__uart.write("gpio 10 1")
-        
-    
-    
-
 class AtError(Exception):
     def __init__(self, value):
         self.value = value
@@ -72,7 +31,7 @@ class AtEvNotExpect(AtError):
     def __init__(self, value):
         AtError.__init__(self, value)
 
-class AtCommands():
+class ShellCmd():
     
     def __init__(self, uart):
         self.__uart=uart
@@ -96,11 +55,6 @@ class AtCommands():
                 #else:                
                 #    self.raiseError("Received " + evRecv.event + " instead of ")
     
-    def setWaitEv(self, listEvExp):
-        self.listEvExp = listEvExp
-    
-    def cleanWaitEv(self):
-        self.listEvExp = None
         
     def raisErrTimeout(self, strEr):
         #function called when timeout is expired        
@@ -120,7 +74,8 @@ class AtCommands():
         self._log.debug("Mutex will be released")
         self.eventWait.set()              
     
-    def waitEv(self, timeout):
+    def waitEv(self, listEvExp, timeout):
+        self.listEvExp = listEvExp
         self.waitTimError = None
         self.timer = threading.Timer(timeout, self.raisErrTimeout, ["Timeout waiting "])
         self._log.debug("wait for timeout" + str (timeout))        
@@ -138,48 +93,47 @@ class AtCommands():
         
         self.setWaitEv(["NullEv"])        
         self.waitEv(6.0)
-        return  
+        return 
+    
+    ############
+    #TODO: the stuff above should be moved outside 
+    ############# 
         
     def switchOnGsm(self):                
         self.__uart.write("gpio 12 1")
         time.sleep(1)
-        self.__uart.write("gpio 12 0")
-        self.setWaitEv(["evAtHostEEFiles"])        
-        self.waitEv(6.0)
+        self.__uart.write("gpio 12 0")        
+        self.waitEv(["evAtHostEEFiles"], 6.0)
         return  
         
         
     def gsmCmee(self): 
         self._log.debug("gpsp")
         
-        self.__uart.write("gsm  AT+CMEE=2")       
-        self.setWaitEv(["evAtOk"])        
-        self.waitEv(2.0)
+        self.__uart.write("gsm  AT+CMEE=2")                   
+        self.waitEv(["evAtOk"], 2.0)
         return
 
     def gsmAtReboot(self):
-        self.__uart.write("gsm  at#reboot")
-        self.setWaitEv(["evAtOk"])        
-        self.waitEv(2.0)
-        self.setWaitEv(["evAtHostEEFiles"])        
-        self.waitEv(6.0)
+        self.__uart.write("gsm  at#reboot")        
+        self.waitEv(["evAtOk"], 2.0)
+        self.waitEv(["evAtHostEEFiles"], 6.0)        
+  
         return  
     
-    def gsmGpioReboot(self):
+    def gsmGpioReboot(self):            
         self.__uart.write("gpio 15 1")
         time.sleep(1)
         self.__uart.write("gpio 15 0")
-        self.setWaitEv(["evAtHostEEFiles"])        
-        self.waitEv(6.0)
+        self.waitEv(["evAtHostEEFiles"], 6.0)        
+        self.waitEv(["evAtGpsPatched"], 6.0)
         return  
-   
     
     def isGsmOn(self):
         self._log.debug("isGsmOn")
         
-        self.__uart.write("gpio 2")
-        self.setWaitEv(["evFwGpio"])
-        self.waitEv(1.0)        
+        self.__uart.write("gpio 2")        
+        self.waitEv(["evFwGpio"], 1.0)        
         if (self.evRecv.str1 == '1'):
             return True
         else: 
@@ -188,17 +142,15 @@ class AtCommands():
     def gsmAtQss2(self): 
         self._log.debug("gpsp")
         
-        self.__uart.write("gsm  AT#QSS=2")       
-        self.setWaitEv(["evAtOk"])        
-        self.waitEv(2.0)
+        self.__uart.write("gsm  AT#QSS=2")               
+        self.waitEv(["evAtOk"], 2.0)
         return
 
     def gsmAtQssWait(self): 
         self._log.debug("gsmAtQssWait")
         
-        self.__uart.write("gsm  AT#QSS?")       
-        self.setWaitEv(["evAtQss"])
-        self.waitEv(2.0)
+        self.__uart.write("gsm  AT#QSS?")               
+        self.waitEv(["evAtQss"], 2.0)
         while True:   
             if self.evRecv.str1 != "3" :
                 time.sleep(1)
@@ -210,18 +162,16 @@ class AtCommands():
     def gpsp(self, state): 
         self._log.debug("gpsp")
         
-        self.__uart.write("gsm AT$GPSP=" + str(state))       
-        self.setWaitEv(["evAtOk"])        
-        self.waitEv(2.0)
+        self.__uart.write("gsm AT$GPSP=" + str(state))               
+        self.waitEv(["evAtOk"], 2.0)
         return
     
     def gsmSgActOn(self): 
         self._log.debug("gpsp")        
         
         while( True ):
-            self.__uart.write("gsm AT#SGACT=1,1,"",""")       
-            self.setWaitEv(["evAtSgactAns", "evAtCmeError"])        
-            self.waitEv(4.0)
+            self.__uart.write("gsm AT#SGACT=1,1,"",""")                   
+            self.waitEv(["evAtSgactAns", "evAtCmeError"], 4.0)
             if self.evRecv.event == "evAtCmeError" and "context already activated" in self.evRecv.str1 :
                 break
             if self.evRecv.event == "evAtCmeError" :
@@ -232,18 +182,16 @@ class AtCommands():
     
     def gsmSetClk(self):
         self._log.debug("gsmClk")                    
-        self.__uart.write("gsm AT+CCLK=\"" + datetime.datetime.now().strftime("%y/%m/%d,%H:%M:%S+00")  + "\"" )       
-        self.setWaitEv(["evAtOk"])        
-        self.waitEv(3.0)    
+        self.__uart.write("gsm AT+CCLK=\"" + datetime.datetime.now().strftime("%y/%m/%d,%H:%M:%S+00")  + "\"" )               
+        self.waitEv(["evAtOk"], 3.0)    
         return
             
 
     def gpsAcp(self): 
         self._log.debug("gpsAcp")
         
-        self.__uart.write("gsm AT$GPSACP")       
-        self.setWaitEv(["evAtGpsacp"])        
-        self.waitEv(2.0)
+        self.__uart.write("gsm AT$GPSACP")               
+        self.waitEv(["evAtGpsacp"], 2.0)
         if self.evRecv.str1 == "" :
             #TODO HOW TO MANAGE IT ???
             #should start from the beginning
@@ -253,9 +201,8 @@ class AtCommands():
     def gpsM2mLocate(self):
         self._log.debug("gpsM2mLocate")
         
-        self.__uart.write("gsm AT#AGPSSND")       
-        self.setWaitEv(["evAtAgpsRing", "evAtCmeError"])        
-        self.waitEv(100.0)
+        self.__uart.write("gsm AT#AGPSSND")               
+        self.waitEv(["evAtAgpsRing", "evAtCmeError"], 100.0)
         
         if self.evRecv.event== "evAtCmeError" and (" Can not resolve name" in self.evRecv.line  or " operation not supported" in self.evRecv.line ):
             raise AtNoConn("Not connected")
@@ -265,14 +212,50 @@ class AtCommands():
             return "Ok"
         
         return 
-        
+            
     def gpsInit(self):
         self._log.debug("gpsInit ")                
         self.__uart.write("gsm AT$GPSINIT")       
         self.setWaitEv(["evAtOk"])        
         self.waitEv(1.0)        
         return     
+    
+    ################################################
+    
+    def fw_TraceOn(self):
+        self.__uart.write("trace" + " 2")
+    
+    def fw_TraceOff(self):
+        self.__uart.write("trace" + " 0")                        
+    
+    def fw_AtFlowOn(self):
+        self.__uart.write("atflow" + " 1")
+    
+    def fw_AtFlow_off(self):
+        self.__uart.write("atflow" + " 0")                         
+            
+    def fw_simReset(self):
+        self.__uart.write("sim reset")        
+    
+    def fw_Gsm(self):
+        self.__uart.write("gsm")
+        
+    def FwEnableTraces(self):
+        self.fw_TraceOn()
+        self.fw_AtFlowOn()
+    
+    def fw_simBtns(self):
+        self.__uart.write("sim" + " btns")    
+    
+    def gw_SwitchGps(self, status):
+        if status == "on" :
+            self.__uart.write("gpio 10 0")
+        elif status == "off":
+            self.__uart.write("gpio 10 1")
      
+
+
+#####################################################
         
 class EventMsg():
     def __init__(self, line, event, str1=""):
@@ -580,6 +563,11 @@ class ShellEvents(imUtils.Observable, imUtils.Parseble):
             return True
         return False
                        
+    def evAtGpsPatched(self, str):
+        if "Patch Manager: Patched" in str:
+            self.fire_action(EventMsg(str, function_name()))
+            return True
+        return False 
                 
 
 def test_print(ev):

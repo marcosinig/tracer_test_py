@@ -36,6 +36,7 @@ import time, os, platform, sys
 
 UART_WIN = "COM8"
 UART_MAC = "/dev/cu.usbmodemimTrace1"
+UART_LINUX = "/dev/ttyACM0"
 
 LOG_FOLDER = "logs"              
 
@@ -71,47 +72,43 @@ class UartM(SessionManager):
         self._uart.msubscribe(self.logFile.fwLog)
         self._uart.msubscribe(self._events.callAllFunc)                                      
         
-        self.fwCmd= imFwInterface.FwCommands(self._uart)     
-        
-    def __del__(self):
-        self._log.debug("Called del ")
-        del self._uart
-        del self._events
-          
-      
+                           
     def start(self):
         #start the uart thread
-        self._log.info("Starting Uart parsing com " + self._uart.uart_port)
-        self._uart.open_ser() 
+        self._uart.open_ser()
+        self._log.info("Starting Uart parsing com " + self._uart._uart_port) 
         self._uart.start()
         
     def close(self):
-        self._uart.close_ser()
+        self._uart.close()
         self.logFile.closeLog()
         
     @staticmethod 
     def returnOsCom():
         if platform.system() == "Windows":
             return UART_WIN
-        if platform.system() == "Darwin":
-            return UART_MAC               
+        elif platform.system() == "Darwin":
+            return UART_MAC   
+        elif platform.system() == "Linux":
+            return UART_LINUX  
 
 def startUartLog():
     #just switch on the device and log all the errors 
     global sessMng        
-    sessMng = UartM()         
-    sessMng._stateMac = imFwConnProfiling.FwConnStateMachine(sessMng.logFile.evLog)
-    sessMng._events.msubscribe(sessMng._stateMac.evHand.callMatchFuncName)
+    sessMng = UartM() 
+    sessMng.shellCmd = imFwInterface.ShellCmd(sessMng._uart)
+        
+    sessMng.stMachine = imFwConnProfiling.FactryStateMachine(sessMng.logFile.evLog, sessMng.shellCmd)
+    sessMng._events.msubscribe(sessMng.stMachine.evHand.callMatchFuncName)
+    
     
     sessMng.start()
     
-    sessMng.fwCmd.FwEnableTraces()
+    #sessMng.fwCmd.FwEnableTraces()
     
-    sessMng.fwCmd.simBtns()
+    #sessMng.fwCmd.simBtns()
     
-    time.sleep(1)
-    
-    del sessMng
+    #sessMng.stMachine.printReport()
     
     
     
@@ -165,6 +162,6 @@ def startParseLogFile():
 sessMng = None    
 if __name__ == "__main__":
     log.info("Starting Main");
-    #startUartLog()
-    startParseLogFile()
+    startUartLog()
+    #startParseLogFile()
     

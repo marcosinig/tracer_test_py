@@ -37,8 +37,7 @@ class StateMachine(object):
         return state
     
     def get_CurrentState(self):
-        return self.currentState
-    
+        return self.currentState    
         
     def change_state(self, newStateName, event):
         self._log.debug( "new State: " + newStateName )

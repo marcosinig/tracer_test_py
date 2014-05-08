@@ -5,22 +5,21 @@ Created on 14/apr/2014
 
 TODO:
 
-- venet deve avere accesso a profiling e non logEv!!!!!
+- implementare il print report fatto BENE:
+    - uno breve
+    - uno esteso
 
--cambiare macchina a stati sugli eventi? logica piu chiara.
+- Modo per scatenare  il print report da shell durante log??
+    - scrivere log in una window??
 
--CSQ keep alive -> se manca perso connessione..!
-
+- implementare reset al BOOT
+- Check_Tracer_Status 
 
 Verificare:
 
 Improvements:
-- L'handler degli eventi deve sottoscrivere e non usare parsable (problema eventi non esistenti)
-- State machine non e il max 
-
-
+ 
 '''
-
 import imUtils  
 import imFwInterface 
 import imStateMachine
@@ -28,14 +27,10 @@ import logging
 import copy,threading
 from  imUtils import function_name
 
-
 log = imUtils.logging.getLogger(__name__)        
 imUtils.configureLog(log)
 
-
-
-
-class regHandlerConn(imUtils.Parseble):
+class RegHandlerConn(imUtils.Parseble):
     """
     function names are called in base of shell and mqtt events
     
@@ -212,7 +207,7 @@ class regHandlerConn(imUtils.Parseble):
 
          
 
-class ConnEvents():
+class MngProfEv():
     
     class ConnProfileEv(object):
         def __init__(self, connEvents, msg, ev, status_p = None, errors_ev_list = None):
@@ -262,7 +257,7 @@ class ConnEvents():
     def addProfExEv(self, ev):
         #self._log.info(function_name())
         #self._log.info(ev.getSource() +": Error in state " + state + "ev: " + ev)
-        profEv = ConnEvents.ConnProfExEv(imUtils.myTime.getTimestamp(), ev ) 
+        profEv = MngProfEv.ConnProfExEv(imUtils.myTime.getTimestamp(), ev ) 
         self.eventsException.append(ev)  
     
     def addProfEv(self, ev):
@@ -452,9 +447,7 @@ class ConnProfiling():
         self._log.info(str (self.mqtt_p) )
         
         profEv = self.connEvents.ConnProfileEvEx( self,"Mqtt exit", ev, self.mqtt_p) 
-        self.connEvents.addProfEv(profEv) 
-            
-
+        self.connEvents.addProfEv(profEv)             
                         
     def set_iccid(self, iccid):
         self.iccid=iccid
@@ -470,38 +463,13 @@ class FwStuck_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
                 
-class Undef_state(imStateMachine.StateFath):
-    """
-    State used for defining if the tracer is already switched on or off
-    If it is off, goes to off_state
-    If it is on, a reset is require --> TODO
-    """
-    timeout_exit_state = 15.0
-    
-    def __init__(self, obs):
-        super(self.__class__, self).__init__(obs)
-        self.startState = True 
-        self.timer = threading.Timer(Undef_state.timeout_exit_state, self.gotoOff)
-    
-    def gotoOff(self):
-            print "timeout expired!"
-            newState = "Off_state"
 
-    def acEnterState(self, ev):
-        #setup a call timeout, if nothing happen go to off!
-        print "setup time handler"
-        self.timer.start()
-    
-    def processEv(self, event):
-        #if there is an event it is not switched off
-        self.timer.cancel()
-        print "Reset is required!"
-        #raise SOMETHING!
 
 class Off_state(imStateMachine.StateFath):
     
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
+        self.startState(True)
         
     def processEv(self, event):
         newState = None
@@ -690,27 +658,28 @@ class Check_Tracer_Status():
         if str(self.sm.get_CurrentState) != "...." :
             #here should be reset the timeout..
             self.timer.start() #check how can be reset to INITAL value
-                
-            
+                            
 
 class FactryStateMachine():
     """
     This is a singleton, TODO: it has to be implemnted according
     """
-    def __init__(self, logEv):
+    def __init__(self, logEv, shellCmd):
         
         self.sm = imStateMachine.StateMachine()
-        self.ce = ConnEvents()
+        self.mngProfEv = MngProfEv()
         
         
-        self.evHand = regHandlerConn(self.sm.process, self, logEv)        
-        self.connProf = ConnProfiling(self.ce, logEv)      
-        #TODO: add Check_Tracer_Status
         
+        #NOT USED YET: self.shellCmd = shellCmd        
+        #TODO IMPLEMENT A WAY TO DO A RESET
         
-        self.sm.add_state(AtStuck_state())
-        self.sm.add_state(FwStuck_state())
-        self.sm.add_state(Undef_state())
+        self.evHand = RegHandlerConn(self.sm.process, self, logEv)        
+        self.connProf = ConnProfiling(self.mngProfEv, logEv)        
+        
+        self.sm.add_state(AtStuck_state(self.connProf))
+        self.sm.add_state(FwStuck_state(self.connProf))
+        
         self.sm.add_state(Off_state(self.connProf))
         self.sm.add_state(Disconnected_state(self.connProf))
         self.sm.add_state(Gprs_state(self.connProf))
