@@ -4,12 +4,10 @@ Created on Apr 27, 2014
 @author: marco
 '''
 
-import logging
+import logging, imUtils
 
-from imUtils  import configureLog
+logger = logging.getLogger("imSystem." + __name__)        
 
-logger = logging.getLogger(__name__)        
-configureLog(logger)
 
 class StateMachine(object):
     def __init__(self):
@@ -19,7 +17,7 @@ class StateMachine(object):
         
         self.handler = None
         
-        self._log = logger
+        self._log = imUtils.logging.getLogger("imSystem."+ __name__ + "."+ self.__class__.__name__)
         
     def add_state(self, state):
         self.states[state.name.upper()] = state

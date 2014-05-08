@@ -14,6 +14,9 @@ import datetime
 import sys,os
 import logging
 
+log = logging.getLogger("imSystem."+ __name__)        
+
+
 
 class Observable(object):
     """
@@ -78,25 +81,25 @@ class UartLine():
 #         self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
 #         
 #         self._myTime = myTime
-#         self._serial_ref=None                
+#         self._serial_obj=None                
 #         self._uart_port=port         
 #         self._stop = threading.Event() 
 #         
 #     def __del__(self):
 #         self._log.debug("Called del ")
 #         self._stop.set()       
-#         if self._serial_ref != None:
-#             self._serial_ref.close()
+#         if self._serial_obj != None:
+#             self._serial_obj.close()
 #     
 #     def close(self):
 #           self._log.debug("Called del ")
 #           self._stop.set()       
-#           if self._serial_ref != None:
-#             self._serial_ref.close()
+#           if self._serial_obj != None:
+#             self._serial_obj.close()
 #     
 #     def open_ser(self):
 #         try:
-#             self._serial_ref = serial.Serial(self._uart_port , baudrate=115200)
+#             self._serial_obj = serial.Serial(self._uart_port , baudrate=115200)
 #         except:
 #             self._log.error("Error on opening port "+ self._uart_port) 
 #             self.stop()            
@@ -105,14 +108,14 @@ class UartLine():
 #     def stop(self):
 #         self._log.debug("Called Stop ")
 #         self._stop.set()       
-#         if self._serial_ref != None:
-#             self._serial_ref.close()
+#         if self._serial_obj != None:
+#             self._serial_obj.close()
 #     
 #     def write(self,str):        
-#         if self._serial_ref == None:
+#         if self._serial_obj == None:
 #             raise Exception("Uart not open")         
 #         try:            
-#             self._serial_ref.write(str + "\r\n")
+#             self._serial_obj.write(str + "\r\n")
 #         except:
 #             self._log.error( "Error on writing on port "+ self._uart_port) 
 #             self.stop()
@@ -121,12 +124,12 @@ class UartLine():
 #     def _readlineCR(self):
 #         rv = ""    
 #         while True:
-#             #if (self._serial_ref.inWaiting() > 0) :
+#             #if (self._serial_obj.inWaiting() > 0) :
 #             try:
-#                 ch = self._serial_ref.read()
+#                 ch = self._serial_obj.read()
 #             except:
 #                 self._log.error("Error on reading on port "+ self._uart_port) 
-#                 self._serial_ref.close()
+#                 self._serial_obj.close()
 #                 raise Exception("Error on reading port "+ self._uart_port);
 #                     
 #             rv += ch
@@ -145,25 +148,20 @@ class Uart(threading.Thread, Observable):
         Observable.__init__(self) 
         self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)       
         
-        self._serial_ref=None                
+        self._serial_obj=None                
         self._uart_port=port         
         self._stop = threading.Event() 
         
-    def __del__(self):
-        self._log.debug("Called del ")
-        self._stop.set()       
-        if self._serial_ref != None:
-            self._serial_ref.close()
-    
+
     def close(self):
           self._log.debug("Called del ")
           self._stop.set()       
-          if self._serial_ref != None:
-            self._serial_ref.close()
+          if self._serial_obj != None:
+            self._serial_obj.close()
     
     def open_ser(self):
         try:
-            self._serial_ref = serial.Serial(self._uart_port , baudrate=115200)
+            self._serial_obj = serial.Serial(self._uart_port , baudrate=115200)
         except:
             self._log.error("Error on opening port "+ self._uart_port) 
             self.stop()            
@@ -172,14 +170,14 @@ class Uart(threading.Thread, Observable):
     def stop(self):
         self._log.debug("Called Stop ")
         self._stop.set()       
-        if self._serial_ref != None:
-            self._serial_ref.close()
+        if self._serial_obj != None:
+            self._serial_obj.close()
     
     def write(self,str):        
-        if self._serial_ref == None:
+        if self._serial_obj == None:
             raise Exception("Uart not open")         
         try:            
-            self._serial_ref.write(str + "\r\n")
+            self._serial_obj.write(str + "\r\n")
         except:
             self._log.error( "Error on writing on port "+ self._uart_port) 
             self.stop()
@@ -188,12 +186,12 @@ class Uart(threading.Thread, Observable):
     def _readlineCR(self):
         rv = ""    
         while True:
-            #if (self._serial_ref.inWaiting() > 0) :
+            #if (self._serial_obj.inWaiting() > 0) :
             try:
-                ch = self._serial_ref.read()
+                ch = self._serial_obj.read()
             except:
                 self._log.error("Error on reading on port "+ self._uart_port) 
-                self._serial_ref.close()
+                self._serial_obj.close()
                 raise Exception("Error on reading port "+ self._uart_port);
                     
             rv += ch
@@ -331,13 +329,24 @@ class OldStateMachine(object):
             self.handler = self.handlers[newState.upper()]
             self.currentState = newState   
 
-def configureLog(logger):
-    
+
+# def singleton(cls):
+#     instances = {}
+#     def getinstance():
+#         if cls not in instances:
+#             instances[cls] = cls()
+#         return instances[cls]
+#     return getinstance
+# @singleton
+
+
+def configureLog(log):
+
     #TODO: confguration is wrong,.,
     
     # create _log 
     #logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
+    log.setLevel(logging.DEBUG)
     # create file handler which logs even debug messages
     fh = logging.FileHandler('_log.txt')
     fh.setLevel(logging.DEBUG)
@@ -350,5 +359,5 @@ def configureLog(logger):
     fh.setFormatter(formatter)
     ch.setFormatter(formatter)
     # add the handlers to the _log
-    logger.addHandler(fh)
-    logger.addHandler(ch)
+    log.addHandler(fh)
+    log.addHandler(ch)

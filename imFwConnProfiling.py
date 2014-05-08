@@ -27,8 +27,8 @@ import logging
 import copy,threading
 from  imUtils import function_name
 
-log = imUtils.logging.getLogger(__name__)        
-imUtils.configureLog(log)
+logger = imUtils.logging.getLogger("imSystem."+ __name__)        
+
 
 class RegHandlerConn(imUtils.Parseble):
     """
@@ -42,7 +42,7 @@ class RegHandlerConn(imUtils.Parseble):
         self._clb=clb
         self.stateM = stateMachine
         self.logEv= logEv
-        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._log = logging.getLogger("imSystem."+ __name__ + "."+ self.__class__.__name__)
         
     def evFwSysUserOn(self, evt):
         if (self.__class__.__log):
@@ -304,10 +304,11 @@ class ConnProfiling():
             line1 = "State {state_Name} last session duration min {session_min} overall durations min {total_time} activated ntimes {numTimes}"
             return line1.format(**self.data)
             
-    def __init__(self, connEvents, logEv):
-        self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
+    def __init__(self, logEv):
+        self._log = logging.getLogger("imSystem."+ __name__ + "."+ self.__class__.__name__)
         self.logEv = logEv
-        self.connEvents = connEvents
+        self.connEvents = MngProfEv()
+        
         
         self.iccid = None
         self.ip = None
@@ -327,24 +328,16 @@ class ConnProfiling():
         self.mqtt_p = ConnProfiling.State_Profiling("Mqtt")
                
     
-    def off_enter(self, ev): 
-        self._log.info(function_name())
-        
-        if self.on_session_t != None:
-            self.on_total_t = imUtils.myTime.getDiffNowMin( self.on_session_t  )        
-            #print on_total_t and on_session_t
-            pass
-            profEv = self.connEvents.ConnProfileEv(self, "Switching off", ev)
-            self.connEvents.addProfEv(profEv)
+    def __str__(self):
+        line1 = ""
+        return str(self.connEvents)
     
-            self.on_session_t = None
+    def off_enter(self, ev): 
+       pass
     
                                     
     def off_exit(self, ev):
-        self._log.info(function_name())         
-        self.on_session_t = imUtils.myTime.getTimestamp()                
-        profEv = self.connEvents.ConnProfileEvEx(self, "Switched On", ev, self.disconnected_p)
-        self.connEvents.addProfEv(profEv)
+        pass
     
     
     def disconnected_enter(self, ev):  
@@ -470,6 +463,24 @@ class Off_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
         self.startState(True)
+    
+    def acEnterState(self, event):
+        self._log.info(function_name())
+        
+        if self._obs.on_session_t != None:
+            self.on_total_t = imUtils.myTime.getDiffNowMin( self.on_session_t  )        
+            #print on_total_t and on_session_t
+            pass
+            profEv = self._obs.connEvents.ConnProfileEv(self, "Switching off", event)
+            self.connEvents.addProfEv(profEv)
+    
+            self.on_session_t = None
+              
+    def acExitState(self, event):
+        self._log.info(function_name())         
+        self._obs.on_session_t = imUtils.myTime.getTimestamp()                
+        profEv = self._obs.connEvents.ConnProfileEvEx(self, "Switched On", event, self._obs.disconnected_p)
+        self.connEvents.addProfEv(profEv)
         
     def processEv(self, event):
         newState = None
@@ -660,36 +671,39 @@ class Check_Tracer_Status():
             self.timer.start() #check how can be reset to INITAL value
                             
 
-class FactryStateMachine():
+def startDevStateProf(sessMng):
     """
     This is a singleton, TODO: it has to be implemnted according
     """
-    def __init__(self, logEv, shellCmd):
+                    
         
-        self.sm = imStateMachine.StateMachine()
-        self.mngProfEv = MngProfEv()
-        
-        
-        
-        #NOT USED YET: self.shellCmd = shellCmd        
-        #TODO IMPLEMENT A WAY TO DO A RESET
-        
-        self.evHand = RegHandlerConn(self.sm.process, self, logEv)        
-        self.connProf = ConnProfiling(self.mngProfEv, logEv)        
-        
-        self.sm.add_state(AtStuck_state(self.connProf))
-        self.sm.add_state(FwStuck_state(self.connProf))
-        
-        self.sm.add_state(Off_state(self.connProf))
-        self.sm.add_state(Disconnected_state(self.connProf))
-        self.sm.add_state(Gprs_state(self.connProf))
-        self.sm.add_state(Provosioning_state(self.connProf))
-        self.sm.add_state(Ssl_state(self.connProf))
-        self.sm.add_state(MqttConn_state(self.connProf))
-        self.sm.add_state(Online_state(self.connProf))
+    stateM = imStateMachine.StateMachine()
     
-    def printReport(self):
+    evHand = RegHandlerConn(stateM.process, sessMng.logEv)        
+    connProf = ConnProfiling(sessMng.logEv)        
+   
+    #NOT USED YET: self.shellCmd = shellCmd        
+    #TODO IMPLEMENT A WAY TO DO A RESET
+    
+        
+    sessMng._events.msubscribe(evHand.callMatchFuncName)
+
+    
+    stateM.add_state(AtStuck_state(connProf))
+    stateM.add_state(FwStuck_state(connProf))
+    
+    stateM.add_state(Off_state(connProf))
+    stateM.add_state(Disconnected_state(connProf))
+    stateM.add_state(Gprs_state(connProf))
+    stateM.add_state(Provosioning_state(connProf))
+    stateM.add_state(Ssl_state(connProf))
+    stateM.add_state(MqttConn_state(connProf))
+    stateM.add_state(Online_state(connProf))
+    
+    return connProf
+    
+def printReport(connProf):
         print("\n Start Report \n")
-        print str(self.ce)
+        print str(connProf())
            
       

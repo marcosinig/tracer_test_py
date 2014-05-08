@@ -4,12 +4,9 @@ Created on May 6, 2014
 @author: marco
 '''
 
-import imUtils 
-import imFwInterface
+import imUtils, imFwInterface, ImSystem
 
-import time, os, platform, sys
-
-import main          
+import time 
 
 log = imUtils.logging.getLogger(__name__)        
 imUtils.configureLog(log)
@@ -18,13 +15,19 @@ imUtils.configureLog(log)
 
 def testGpsInit(sessMng):
     
-    #sessMng.fwCmd.reset()
-    #time.sleep(1)
+    #register event handler
+    sessMng._events.msubscribe(sessMng.shellCmd.parseEv)       
+
+    #use logger !!!!
+    #sessMng.logEv
+    pass
+    
     #TODO: when uart is remount problem with ROOT access
-    
-    #sessMng.shellCmd.testWaitEv()
-    
     #sessMng.shellCmd.fw_simReset()
+    #
+    pass            
+            
+    
     sessMng.shellCmd.FwEnableTraces()    
     time.sleep(1)
     if (sessMng.shellCmd.isGsmOn()):
@@ -76,22 +79,20 @@ def testGpsInit(sessMng):
 
 def startFwTests():
     #just switch on the device and log all the errors 
-    global sessMng        
-    sessMng = main.UartM()         
+    global imSystem        
+    imSystem = ImSystem.FactUartSys()         
     
-    sessMng.shellCmd = imFwInterface.ShellCmd(sessMng._uart)
     
-    sessMng._events.msubscribe(sessMng.shellCmd.parseEv)       
       
-    sessMng.start()
+    imSystem.start()
     #try:
-    testGpsInit(sessMng)
+    testGpsInit(imSystem)
     
     #except Exception as e:
     #    print e
     #    sessMng.close()
     
-    sessMng.close()
+    imSystem.close()
 
 
 

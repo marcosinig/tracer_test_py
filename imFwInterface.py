@@ -12,8 +12,7 @@ import threading
 from  imUtils import function_name
 import imUtils
 
-log = imUtils.logging.getLogger(__name__)        
-imUtils.configureLog(log)
+logger = imUtils.logging.getLogger("imSystem."+ __name__)        
 
     
 class AtError(Exception):
@@ -35,7 +34,7 @@ class ShellCmd():
     
     def __init__(self, uart):
         self.__uart=uart
-        self._log = imUtils.logging.getLogger(__name__ + "." + self.__class__.__name__)
+        self._log = imUtils.logging.getLogger("imSystem."+ __name__ + "."+ self.__class__.__name__)
         
         self.listEvExp = None
         self.eventWait = threading.Event()     
