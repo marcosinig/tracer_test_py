@@ -5,6 +5,14 @@ Created on 14/apr/2014
 
 TODO:
 
+-MngListProfEv :
+    - l'oggetto non DEVE essere incluso in 
+
+- Rimuovere RegHandlerConn???
+    non serve a molto.., forse per i log?!?
+    ridondanza nomi..
+    DOVREBBE servire per redefinire alcuni eventi con azioni ma far passare tutti gli eventi!
+
 - implementare il print report fatto BENE:
     - uno breve
     - uno esteso
@@ -32,184 +40,25 @@ logger = imUtils.logging.getLogger("imSystem."+ __name__)
 
 class RegHandlerConn(imUtils.Parseble):
     """
-    function names are called in base of shell and mqtt events
     
     """
     __log=1
     
-    def __init__(self, clb, stateMachine, logEv):
+    def __init__(self, clb, logEv):
         super(self.__class__, self).__init__()
         self._clb=clb
-        self.stateM = stateMachine
         self.logEv= logEv
         self._log = logging.getLogger("imSystem."+ __name__ + "."+ self.__class__.__name__)
-        
-    def evFwSysUserOn(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )
-        self._clb(evt)
-        
-    def evFwSysUseOff(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )
-        self._clb(evt)
-        
-    #def evFwButtonOnOff(self, evt):
-    #    if (self.__class__.__log):
-    #        self._log.debug( function_name() )
-    #    self._clb(evt)
     
-    #***
-    def evFwSysGsmOnFailed(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )
+    def defCallBck(self, evt):
+        self._log.debug( str(evt) )
         self._clb(evt)
     
-    
-    #def evFwSysGsmOFffFailed(self, evt):        
-    #    if (self.__class__.__log):
-    #        self._log.debug( function_name() )
-    #    self._clb(evt)
-       
-    def evFwSysGpsStartupFailed(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )
-        self._clb(evt)
+            
 
-    def evFwSysNvmFailed(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )
-        self._clb(evt)    
-
-    def evFwSysStartupFailed(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )
-        self._clb(evt)     
-                              
-    def evAtGetIccid(self, evt):            
-        if (self.__class__.__log):
-            self._log.debug( function_name() + " iccid " + evt.str1 )
-        self._clb(evt)
-        
-    def evFwGprsActFailed(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name())
-        self._clb(evt) 
-        
-    #GPRS event         
-    def evAtSgactQuery(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt)
-        
-    def evAtSgactAns(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt) 
+class MngListProfEv():
     
-    #provisioning
-    def evAtQueryProvisioning(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt) 
-    
-    def evFwProvisioningFailed(self, evt):
-         if (self.__class__.__log):
-            self._log.debug( function_name()  )
-         self._clb(evt)
-    
-    def evAtRingOk(self, evt):
-         if (self.__class__.__log):
-            self._log.debug( function_name()  )
-         self._clb(evt)
-    
-    def evFwMqttConnect(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt)
-         
-    def evAtSsld(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt) 
-        
-    def evFwSystemTlsFailed(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt) 
-    
-    def evFwMqttSusbscribedFailed(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt) 
-    
-    def evFwMqttHelloFailed(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt) 
-        
-    def evFwMqttPubFailed(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt) 
-                
-    def evFwMqttPingFailed(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt)        
-                        
-    def evFwSystemOnLine(self, evt): 
-        if (self.__class__.__log):
-            self._log.debug( function_name()  )
-        self._clb(evt) 
- 
-    #general errors
-    def evAtCmeError(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )    
-        self._log.error( function_name() + str(evt))        
-        self._clb(evt)  
-    
-    def evAtHostEEFiles(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )                   
-        self._clb(evt)  
-    
-    #CSQ - not used..
-    def evAtCsq(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )  
-        #if self.stateM == "Connected".upper():
-        #    pass           
-        #self._clb(evt)
-    
-    #reconnect procedure, NOT HANDLED yet    
-    def evFwSystemReconnect(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )
-        self._clb(evt)    
-    
-    #disconnect events      
-    def evFwOffline(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )
-        self._clb(evt)
-    def evAtNoCarrier(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )  
-        self._log.error( function_name() + str(evt))                
-        self._clb(evt)  
-    def evFwRecconnetInterval(self, evt):
-        if (self.__class__.__log):
-            self._log.debug( function_name() )
-        self._clb(evt)  
-        
-
-         
-
-class MngProfEv():
-    
-    class ConnProfileEv(object):
+    class ProfEv(object):
         def __init__(self, connEvents, msg, ev, status_p = None, errors_ev_list = None):
             #obj has to implement to string
             self.timestamp = imUtils.myTime.getTimestamp()
@@ -234,16 +83,16 @@ class MngProfEv():
                     line += str( errL )        
             return line 
 
-    class ConnProfExEv(ConnProfileEv):
+    class ProfileExEv(ProfEv):
         def __init__(self, connEvents, ev):
             super(self.__class__, self).__init__( connEvents, ev.getSource() +" "+ev.getExceptionType(), ev)
     
-    class ConnProfStatusEv(ConnProfileEv):
+    class ProfileStatusEv(ProfEv):
         #not used
         def __init__(self,connEvents, msg, ev, status_p):
             super(self.__class__, self).__init__(connEvents,  ev.getSource() +" "+ev.getExceptionType(), ev, status_p)
     
-    class ConnProfileEvEx(ConnProfileEv):
+    class ProfileEvEx(ProfEv):
         def __init__(self, connEvents, msg, ev, status_p):
             super(self.__class__, self).__init__( connEvents, ev.getSource() , ev, status_p)
 
@@ -257,7 +106,7 @@ class MngProfEv():
     def addProfExEv(self, ev):
         #self._log.info(function_name())
         #self._log.info(ev.getSource() +": Error in state " + state + "ev: " + ev)
-        profEv = MngProfEv.ConnProfExEv(imUtils.myTime.getTimestamp(), ev ) 
+        profEv = MngListProfEv.ProfileExEv(imUtils.myTime.getTimestamp(), ev ) 
         self.eventsException.append(ev)  
     
     def addProfEv(self, ev):
@@ -284,8 +133,8 @@ class MngProfEv():
         return temp  
     
 
-class ConnProfiling():
-    class State_Profiling():                
+class MngStCnProf():
+    class StCnProf():                
         def __init__(self, stateName):
             self.data = { 'state_Name': stateName,'numTimes':0, 'total_time':0, 'session_ts':None, 'session_min':0 }            
         
@@ -307,7 +156,7 @@ class ConnProfiling():
     def __init__(self, logEv):
         self._log = logging.getLogger("imSystem."+ __name__ + "."+ self.__class__.__name__)
         self.logEv = logEv
-        self.connEvents = MngProfEv()
+        self.connEvents = MngListProfEv()
         
         
         self.iccid = None
@@ -320,127 +169,16 @@ class ConnProfiling():
         #startistics disconnected, updated everytime enter/exit disconnected status
         self.disconnected_nt = -1
         
-        self.online_p = ConnProfiling.State_Profiling("Online")
-        self.disconnected_p = ConnProfiling.State_Profiling("Disconnected")
-        self.gprs_p = ConnProfiling.State_Profiling("Gprs")
-        self.provisioning_p = ConnProfiling.State_Profiling("Provisioning")
-        self.ssl_p = ConnProfiling.State_Profiling("Ssl")
-        self.mqtt_p = ConnProfiling.State_Profiling("Mqtt")
-               
-    
+        self.online_p = MngStCnProf.StCnProf("Online")
+        self.disconnected_p = MngStCnProf.StCnProf("Disconnected")
+        self.gprs_p = MngStCnProf.StCnProf("Gprs")
+        self.provisioning_p = MngStCnProf.StCnProf("Provisioning")
+        self.ssl_p = MngStCnProf.StCnProf("Ssl")
+        self.mqtt_p = MngStCnProf.StCnProf("Mqtt")
+                   
     def __str__(self):
         line1 = ""
-        return str(self.connEvents)
-    
-    def off_enter(self, ev): 
-       pass
-    
-                                    
-    def off_exit(self, ev):
-        pass
-    
-    
-    def disconnected_enter(self, ev):  
-        self._log.info(function_name())   
-       
-        self.disconnected_p.enter()
-        
-        profEv = self.connEvents.ConnProfileEv(self, "Disconnected Enter", ev)
-        self.connEvents.addProfEv(profEv)
-                    
-    def disconnected_exit(self, ev):        
-        pass                                                                 
-        
-    
-    def online_enter(self, ev):
-        self._log.info(function_name())   
-        
-        self.disconnected_p.exit()
-        profEv = self.connEvents.ConnProfileEvEx(self, "Disconnected Exit", ev, self.disconnected_p)
-        self.connEvents.addProfEv(profEv) 
-        
-        self.online_p.enter()
-        
-        profEv = self.connEvents.ConnProfileEv(self, "Online Enter", ev)
-        self.connEvents.addProfEv(profEv)
-    
-    def online_exit(self, ev):
-        self._log.info(function_name())   
-        
-        self.online_p.exit()
-        #self._log.info(str (self.online_p) )
-        #copy_p = copy.deepcopy(self.online_p)
-        
-        profEv = self.connEvents.ConnProfileEvEx(self, "Online Exit", ev, self.online_p)
-        self.connEvents.addProfEv(profEv) 
-   
-    def gprs_enter(self, ev):
-        self._log.info(function_name())
-        
-        self.gprs_p.enter()
-
-        profEv = self.connEvents.ConnProfileEv(self, "Gprs enter", ev) 
-        self.connEvents.addProfEv(profEv)
-    
-    def gprs_exit(self, ev):
-        self._log.info(function_name())   
-        
-        self.gprs_p.exit()
-        #self._log.info(str (self.gprs_p) )
-        
-        profEv = self.connEvents.ConnProfileEvEx( self,"Gprs exit", ev, self.gprs_p) 
-        self.connEvents.addProfEv(profEv)
-         
-    def provisioning_enter(self, ev):
-        self._log.info(function_name())
-       
-        self.provisioning_p.enter()
-
-        profEv = self.connEvents.ConnProfileEv(self, "Provisioning enter", ev) 
-        self.connEvents.addProfEv(profEv)
-    
-    def provisioning_exit(self, ev):
-        self._log.info(function_name()) 
-          
-        self.provisioning_p.exit()
-        self._log.info(str (self.provisioning_p) )
-        
-        profEv = self.connEvents.ConnProfileEvEx(self, "Provisioning exit", ev, self.provisioning_p) 
-        self.connEvents.addProfEv(profEv)
-            
-    def ssl_enter(self, ev):
-        self._log.info(function_name())
-       
-        self.ssl_p.enter()
-
-        profEv = self.connEvents.ConnProfileEv(self,"Ssl enter", ev) 
-        self.connEvents.addProfEv(profEv)
-    
-    def ssl_exit(self, ev):
-        self._log.info(function_name())   
-          
-        self.ssl_p.exit()
-        self._log.info(str (self.ssl_p) )
-        
-        profEv = self.connEvents.ConnProfileEvEx( self,"Ssl exit", ev, self.ssl_p) 
-        self.connEvents.addProfEv(profEv)
-    
-    def mqttConn_enter(self, ev):
-        self._log.info(function_name())
-        
-        self.mqtt_p.enter()
-
-        profEv = self.connEvents.ConnProfileEv(self, "Mqtt enter", ev) 
-        self.connEvents.addProfEv(profEv)
-    
-    def mqttConn_exit(self, ev):
-        self._log.info(function_name())  
-         
-        self.mqtt_p.exit()
-        self._log.info(str (self.mqtt_p) )
-        
-        profEv = self.connEvents.ConnProfileEvEx( self,"Mqtt exit", ev, self.mqtt_p) 
-        self.connEvents.addProfEv(profEv)             
+        return str(self.connEvents)    
                         
     def set_iccid(self, iccid):
         self.iccid=iccid
@@ -462,31 +200,31 @@ class Off_state(imStateMachine.StateFath):
     
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
-        self.startState(True)
+        self.startState = True
     
-    def acEnterState(self, event):
+    def enterState(self, event):
         self._log.info(function_name())
         
-        if self._obs.on_session_t != None:
+        if self.connProf.on_session_t != None:
             self.on_total_t = imUtils.myTime.getDiffNowMin( self.on_session_t  )        
             #print on_total_t and on_session_t
             pass
-            profEv = self._obs.connEvents.ConnProfileEv(self, "Switching off", event)
-            self.connEvents.addProfEv(profEv)
+            profEv = self.connProf.connEvents.ConnProfileEv(self, "Switching off", event)
+            self.connProf.connEvents.addProfEv(profEv)
     
             self.on_session_t = None
               
-    def acExitState(self, event):
+    def exitState(self, event):
         self._log.info(function_name())         
-        self._obs.on_session_t = imUtils.myTime.getTimestamp()                
-        profEv = self._obs.connEvents.ConnProfileEvEx(self, "Switched On", event, self._obs.disconnected_p)
-        self.connEvents.addProfEv(profEv)
+        self.connProf.on_session_t = imUtils.myTime.getTimestamp()                
+        profEv = self.connProf.connEvents.ProfileEvEx(self, "Switched On", event, self.connProf.disconnected_p)
+        self.connProf.connEvents.addProfEv(profEv)
         
     def processEv(self, event):
         newState = None
 
         if event.event == "evFwSysGsmOnFailed":
-            self._obs.connEvents.addProfExEv(event)
+            self.connProf.connEvents.addProfExEv(event)
         
         if event.event == "evFwSysUserOn":
             newState = "Disconnected_state"
@@ -496,12 +234,23 @@ class Off_state(imStateMachine.StateFath):
 class Disconnected_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
+    
+    def enterState(self, event):
+        self._log.info(function_name())   
+       
+        self.connProf.disconnected_p.enter()
         
+        profEv = self.connProf.connEvents.ProfEv(self, "Disconnected Enter", event)
+        self.connProf.connEvents.addProfEv(profEv)
+        
+    def exitState(self, event):
+        pass
+    
     def processEv(self, event):
         newState = None
         
         if event.event== "evFwSysGpsStartupFailed" or event.event=="evFwSysNvmFailed" or event.event=="evFwSysStartupFailed":  
-            self._obs.connEvents.addProfExEv(event)
+            self.connProf.connEvents.addProfExEv(event)
         
         #FW HAS TO GO OFF FOR ERRORS; HOW?
         
@@ -522,6 +271,23 @@ class Disconnected_state(imStateMachine.StateFath):
 class Gprs_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
+        
+    def enterState(self, event):
+        self._log.info(function_name())
+        
+        self.connProf.gprs_p.enter()
+
+        profEv = self.connProf.connEvents.ProfEv(self, "Gprs enter", event) 
+        self.connProf.connEvents.addProfEv(profEv)
+        
+    def exitState(self, event):
+        self._log.info(function_name())   
+        
+        self.connProf.gprs_p.exit()
+        #self._log.info(str (self.gprs_p) )
+        
+        profEv = self.connProf.connEvents.ProfileEvEx( self,"Gprs exit", event, self.connProf.gprs_p) 
+        self.connProf.connEvents.addProfEv(profEv)
             
     def processEv(self, event):
         newState = None
@@ -531,7 +297,7 @@ class Gprs_state(imStateMachine.StateFath):
         
         if event.isExcepton():
             #log the exceptions
-            self._obs.connEvents.addProfExEv(event)
+            self.connProf.connEvents.addProfExEv(event)
         
 
         #WARN: Should move on with the evAtSgactAns!
@@ -547,13 +313,30 @@ class Gprs_state(imStateMachine.StateFath):
 class Provosioning_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
-            
+        
+    def enterState(self, event):
+        self._log.info(function_name())
+       
+        self.connProf.provisioning_p.enter()
+
+        profEv = self.connProf.connEvents.ProfEv(self, "Provisioning enter", event) 
+        self.connProf.connEvents.addProfEv(profEv)
+        
+    def exitState(self, event):    
+        self._log.info(function_name()) 
+          
+        self.connProf.provisioning_p.exit()
+        self._log.info(str (self.connProf.provisioning_p) )
+        
+        profEv = self.connProf.connEvents.ProfileEvEx(self, "Provisioning exit", event, self.connProf.provisioning_p) 
+        self.connProf.connEvents.addProfEv(profEv)
+        
     def processEv(self, event):
         newState = None
 
         if event.isExcepton():
             #log the exceptions
-            self._obs.connEvents.addProfExEv(event)       
+            self.connProf.connEvents.addProfExEv(event)       
         
         if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state" 
@@ -567,13 +350,30 @@ class Provosioning_state(imStateMachine.StateFath):
 class Ssl_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
+        
+    def enterState(self, event):
+        self._log.info(function_name())
+       
+        self.connProf.ssl_p.enter()
+
+        profEv = self.connProf.connEvents.ProfEv(self,"Ssl enter", event) 
+        self.connProf.connEvents.addProfEv(profEv)
+        
+    def exitState(self, event):  
+        self._log.info(function_name())   
+          
+        self.connProf.ssl_p.exit()
+        self._log.info(str (self.connProf.ssl_p) )
+        
+        profEv = self.connProf.connEvents.ProfileEvEx( self,"Ssl exit", event, self.connProf.ssl_p) 
+        self.connProf.connEvents.addProfEv(profEv)
             
     def processEv(self, event):
         newState = None
 
         if event.isExcepton():
             #log the exceptions
-            self._obs.connEvents.addProfExEv(event)
+            self.connProf.connEvents.addProfExEv(event)
         
         if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state" 
@@ -583,19 +383,34 @@ class Ssl_state(imStateMachine.StateFath):
         
         return newState
 
-
-
 class MqttConn_state(imStateMachine.StateFath):
 
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
+    
+    def enterState(self, event):
+        self._log.info(function_name())
         
+        self.connProf.mqtt_p.enter()
+
+        profEv = self.connProf.connEvents.ProfEv(self, "Mqtt enter", event) 
+        self.connProf.connEvents.addProfEv(profEv)
+        
+    def exitState(self, event):
+        self._log.info(function_name())  
+         
+        self.connProf.mqtt_p.exit()
+        self.connProf._log.info(str (self.connProf.mqtt_p) )
+        
+        profEv = self.connProf.connEvents.ProfileEvEx( self,"Mqtt exit", event, self.connProf.mqtt_p) 
+        self.connProf.connEvents.addProfEv(profEv) 
+    
     def processEv(self, event):
         newState = None
 
         if event.isExcepton():
             #log the exceptions
-            self._obs.connEvents.addProfExEv(event)
+            self.connProf.connEvents.addProfExEv(event)
 
         
         if event.event=="evFwRecconnetInterval":
@@ -610,13 +425,35 @@ class MqttConn_state(imStateMachine.StateFath):
 class Online_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
+        
+    def enterState(self, event):    
+        self._log.info(function_name())   
+        
+        self.connProf.disconnected_p.exit()
+        profEv = self.connProf.connEvents.ProfileEvEx(self, "Disconnected Exit", event, self.connProf.disconnected_p)
+        self.connProf.connEvents.addProfEv(profEv) 
+        
+        self.connProf.online_p.enter()
+        
+        profEv = self.connProf.connEvents.ProfEv(self, "Online Enter", event)
+        self.connProf.connEvents.addProfEv(profEv)
+    
+    def exitState(self, event):
+        self._log.info(function_name())   
+        
+        self.connProf.online_p.exit()
+        #self._log.info(str (self.online_p) )
+        #copy_p = copy.deepcopy(self.online_p)
+        
+        profEv = self.connProf.connEvents.ProfileEvEx(self, "Online Exit", event, self.connProf.online_p)
+        self.connProf.connEvents.addProfEv(profEv) 
             
     def processEv(self, event):
         newState = None
 
         if event.isExcepton():
             #log the exceptions
-            self._obs.connEvents.addProfExEv(event)
+            self.connProf.connEvents.addProfExEv(event)
                     
         if event.event=="evFwRecconnetInterval":
             newState = "Disconnected_state"
@@ -671,22 +508,21 @@ class Check_Tracer_Status():
             self.timer.start() #check how can be reset to INITAL value
                             
 
-def startDevStateProf(sessMng):
+def startDevStateProf(imSys):
     """
     This is a singleton, TODO: it has to be implemnted according
-    """
-                    
-        
+    """                            
     stateM = imStateMachine.StateMachine()
     
-    evHand = RegHandlerConn(stateM.process, sessMng.logEv)        
-    connProf = ConnProfiling(sessMng.logEv)        
+    evHand = RegHandlerConn(stateM.process, imSys.logFile.logEv)        
+    connProf = MngStCnProf(imSys.logFile.logEv)        
    
     #NOT USED YET: self.shellCmd = shellCmd        
     #TODO IMPLEMENT A WAY TO DO A RESET
     
         
-    sessMng._events.msubscribe(evHand.callMatchFuncName)
+    imSys._events.msubscribe(evHand.defCallBck)
+    #imSys._events.msubscribe(evHand.callMatchFuncName)
 
     
     stateM.add_state(AtStuck_state(connProf))

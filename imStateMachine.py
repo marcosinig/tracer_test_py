@@ -24,7 +24,7 @@ class StateMachine(object):
         state.initState()
         if state.startState:
             self.currentState = state
-            self.currentState.acEnterState(None)
+            self.currentState.enterState(None)
     
     def get_State(self, name):
         #get the state in base of the name
@@ -40,8 +40,8 @@ class StateMachine(object):
     def change_state(self, newStateName, event):
         self._log.debug( "new State: " + newStateName )
         newState = self.get_State(newStateName)  
-        self.currentState.acExitState(event)
-        newState.acEnterState(event)
+        self.currentState.exitState(event)
+        newState.enterState(event)
         self.currentState = newState
         
     def process(self, event):            
@@ -55,22 +55,22 @@ class StateFath(object):
         self.name = self.__class__.__name__
         self.startState = False
         self._log = logger
-        self._obs = obs
+        self.connProf = obs
     
-    def acEnterState(self, event):
+    def enterState(self, event):
         list = self.name.split("_")
         method_name = list[0] + "_enter"
         try:
-            method = getattr(self._obs, method_name.lower())
+            method = getattr(self.connProf, method_name.lower())
         except:
             return 
         method(event)
     
-    def acExitState(self, event):
+    def exitState(self, event):
         list = self.name.split("_")
         method_name = list[0] + "_exit"
         try:
-            method = getattr(self._obs, method_name.lower())
+            method = getattr(self.connProf, method_name.lower())
         except:
             return 
         method(event)
@@ -79,7 +79,7 @@ class StateFath(object):
         list = self.name.split("_")
         method_name = list[0] + "_init"
         try:
-            method = getattr(self._obs, method_name.lower())
+            method = getattr(self.connProf, method_name.lower())
         except:
             return 
         method()
@@ -96,11 +96,11 @@ class Test0_state(StateFath):
         super(self.__class__, self).__init__(obs)
         self.startState = True        
     
-    def acEnterState(self):
-        self._log.info("acEnterState " + self.__class__.__name__)
+    def enterState(self):
+        self._log.info("enterState " + self.__class__.__name__)
     
-    def acExitState(self):
-        self._log.info("acExitState"  + self.__class__.__name__)
+    def exitState(self):
+        self._log.info("exitState"  + self.__class__.__name__)
 
     def initState(self):
         self._log.info("initState"  + self.__class__.__name__) 
@@ -116,11 +116,11 @@ class Test1_state(StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
     
-    #def acEnterState(self):
-    #    self._log.info("acEnterState " + self.__class__.__name__)
+    #def enterState(self):
+    #    self._log.info("enterState " + self.__class__.__name__)
     
-    def acExitState(self):
-        self._log.info("acExitState"  + self.__class__.__name__)
+    def exitState(self):
+        self._log.info("exitState"  + self.__class__.__name__)
 
  
     def processEv(self, event):

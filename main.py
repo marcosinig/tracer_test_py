@@ -20,7 +20,7 @@ NOT WORKING:
 @author: I'm
 '''
 
-import imSystem, imUtils
+import imSystem, imUtils, imFwConnProfiling
 import os, logging
 
 uart_list = { "UART_WIN" : "COM8", "UART_MAC" : "/dev/cu.usbmodemimTrace1", "UART_LINUX" : "/dev/ttyACM0" }
@@ -32,7 +32,7 @@ def startUartLog():
     
     log.info("Starting ParseLogFile file: " + imSys._uart.getName());
         
-    imSys.stMachine = imSys.imFwConnProfiling.startDevStateProf(sessMng.logFile.evLog, sessMng.shellCmd)
+    imSys.stMachine = imFwConnProfiling.startDevStateProf(imSys)
     imSys._events.msubscribe(sessMng.stMachine.evHand.callMatchFuncName)
     
     
@@ -52,7 +52,7 @@ def startParseLogFile():
     #logPath = "C:\\Users\\i'm Developer\\Documents\\log_imhere\\connction_problem\\log_sos_2_23_04.txt"
     
     logPath = os.getcwd()    
-    logPath = os.path.join (logPath + 'fw_logs' + 'log_13_03_multiple_send.txt')
+    logPath = os.path.join (logPath, 'fw_logs',  'log_13_03_multiple_send.txt')
     
     
     log.info("Starting ParseLogFile file: " + logPath);
@@ -61,7 +61,7 @@ def startParseLogFile():
     imSys = imSystem.FactParseLogSys(logPath)
     
     #sessMng.connProf = ConnProfiling(sessMng.logFile.evLog)
-    imSys.connProf = imSys.imFwConnProfiling.startDevStateProf(sessMng.logFile.evLog, sessMng.shellCmd)
+    imSys.connProf = imFwConnProfiling.startDevStateProf(imSys)
                                  
     imSys.start()
     

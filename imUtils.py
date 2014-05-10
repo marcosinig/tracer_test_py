@@ -59,7 +59,14 @@ class Parseble(object):
             if name == obj.event:
                 method(self,obj)
                 break
-               
+        
+    def defCallBck(self, obj):
+        method_name = "defCall"
+        #try:
+        method = getattr(self.connProf, method_name)
+        #except:
+             
+        method(obj)
 
 def function_name():
     return sys._getframe().f_back.f_code.co_name
@@ -213,45 +220,45 @@ class LogFile():
     
     def __init__(self, folder, time):        
         self._myTime = time   
-        self._logfile = None   
-        self._logEvent  = None
+        self.logfile = None   
+        self.logEvent  = None
                 
         location =os.path.dirname(os.path.realpath(__file__))  +  "/" + folder
         if not os.path.exists(location):
             os.makedirs(location)  
         
         #open _log file
-        self._logfile  = open(os.path.join(location, 'log_' + self._myTime.getLogStr()  +'.txt'), 'w')            
-        self._logfile.write("\n")
-        self._logfile.flush()
+        self.logfile  = open(os.path.join(location, 'log_' + self._myTime.getLogStr()  +'.txt'), 'w')            
+        self.logfile.write("\n")
+        self.logfile.flush()
         
         #open Events file
-        self._logEvent  = open(os.path.join(location, 'logEvents_' + self._myTime.getLogStr()  +'.txt'), 'w')            
-        self._logEvent.write("\n")
-        self._logEvent.flush()
+        self.logEvent  = open(os.path.join(location, 'logEvents_' + self._myTime.getLogStr()  +'.txt'), 'w')            
+        self.logEvent.write("\n")
+        self.logEvent.flush()
         
-        print "Writing log uart file in " + self._logfile.name
-        print "Writing log Event file in " + self._logEvent.name
+        print "Writing log uart file in " + self.logfile.name
+        print "Writing log Event file in " + self.logEvent.name
         
     def logEv(self, type, str):
         self.LogType[type](str)
      
     def fwLog(self,str):
         #append in teh logEv file                              
-        self._logfile.write(self._myTime.getTime() + " " + str + "\n")
-        self._logfile.flush()
+        self.logfile.write(self._myTime.getTime() + " " + str + "\n")
+        self.logfile.flush()
         
     def evLog(self,str):
         #append in teh logEv file                              
-        self._logEvent.write(self._myTime.getTime() + ">> " + str + "\n")
-        self._logEvent.flush()
+        self.logEvent.write(self._myTime.getTime() + ">> " + str + "\n")
+        self.logEvent.flush()
         
         self.fwLog(">> " + str)
                 
     def closeLog(self):
         #close the logEv file
-        self._logfile.close()
-        self._logEvent.close()
+        self.logfile.close()
+        self.logEvent.close()
         
     #LogType = { FWLOG: _fwLog, "EVLOG" : _evLog }
 
