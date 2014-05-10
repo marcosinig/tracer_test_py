@@ -23,7 +23,7 @@ NOT WORKING:
 import imSystem, imUtils, imFwConnProfiling
 import os, logging
 
-uart_list = { "UART_WIN" : "COM8", "UART_MAC" : "/dev/cu.usbmodemimTrace1", "UART_LINUX" : "/dev/ttyACM0" }
+uart_list = { "UART_WIN" : "COM3", "UART_MAC" : "/dev/cu.usbmodemimTrace1", "UART_LINUX" : "/dev/ttyACM0" }
 
 def startUartLog():
     #just switch on the device and log all the errors 
@@ -32,9 +32,7 @@ def startUartLog():
     
     log.info("Starting ParseLogFile file: " + imSys._uart.getName());
         
-    imSys.stMachine = imFwConnProfiling.startDevStateProf(imSys)
-    imSys._events.msubscribe(sessMng.stMachine.evHand.callMatchFuncName)
-    
+    imFwConnProfiling.startDevStateProf(imSys)    
     
     imSys.start()
     
@@ -61,7 +59,7 @@ def startParseLogFile():
     imSys = imSystem.FactParseLogSys(logPath)
     
     #sessMng.connProf = ConnProfiling(sessMng.logFile.evLog)
-    imSys.connProf = imFwConnProfiling.startDevStateProf(imSys)
+    imFwConnProfiling.startDevStateProf(imSys)
                                  
     imSys.start()
     
@@ -76,6 +74,6 @@ if __name__ == "__main__":
     imUtils.configureLog(log)
     
     log.info("Starting Main");
-    #startUartLog()
-    startParseLogFile()
+    startUartLog()
+    #startParseLogFile()
     

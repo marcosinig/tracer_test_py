@@ -512,9 +512,9 @@ def startDevStateProf(imSys):
     """
     This is a singleton, TODO: it has to be implemnted according
     """                            
-    stateM = imStateMachine.StateMachine()
+    imSys.stateM = imStateMachine.StateMachine()
     
-    evHand = RegHandlerConn(stateM.process, imSys.logFile.logEv)        
+    evHand = RegHandlerConn(imSys.stateM.process, imSys.logFile.logEv)        
     connProf = MngStCnProf(imSys.logFile.logEv)        
    
     #NOT USED YET: self.shellCmd = shellCmd        
@@ -525,18 +525,17 @@ def startDevStateProf(imSys):
     #imSys._events.msubscribe(evHand.callMatchFuncName)
 
     
-    stateM.add_state(AtStuck_state(connProf))
-    stateM.add_state(FwStuck_state(connProf))
+    imSys.stateM.add_state(AtStuck_state(connProf))
+    imSys.stateM.add_state(FwStuck_state(connProf))
     
-    stateM.add_state(Off_state(connProf))
-    stateM.add_state(Disconnected_state(connProf))
-    stateM.add_state(Gprs_state(connProf))
-    stateM.add_state(Provosioning_state(connProf))
-    stateM.add_state(Ssl_state(connProf))
-    stateM.add_state(MqttConn_state(connProf))
-    stateM.add_state(Online_state(connProf))
+    imSys.stateM.add_state(Off_state(connProf))
+    imSys.stateM.add_state(Disconnected_state(connProf))
+    imSys.stateM.add_state(Gprs_state(connProf))
+    imSys.stateM.add_state(Provosioning_state(connProf))
+    imSys.stateM.add_state(Ssl_state(connProf))
+    imSys.stateM.add_state(MqttConn_state(connProf))
+    imSys.stateM.add_state(Online_state(connProf))
     
-    return connProf
     
 def printReport(connProf):
         print("\n Start Report \n")
