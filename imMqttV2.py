@@ -15,12 +15,9 @@ TODO:
 '''
 
 import mosquitto
-import os
-import sys
-import threading
-import time
-from imMqttInterface import *
-from imUtils import *
+import os , sys, threading
+#import time
+import imMqttInterface, imUtils 
 
 #SHOULD NOT BE USED
 #HAS TO BE INVESTIGATED
@@ -40,7 +37,7 @@ class MqttServerTest():
         self.port=8883
         self.tls=0
 
-class MosqAdapter(threading.Thread, Observable): 
+class MosqAdapter(threading.Thread, imUtils.Observable): 
     __log=1
     __debugMqtt=0
     __username="imcloud"
@@ -60,7 +57,7 @@ class MosqAdapter(threading.Thread, Observable):
     def on_message(self, mosq, obj, msg):
         self._log.debug("Received msg " + msg.topic+" "+str(msg.qos)+" "+str(msg.payload) )
         if self._msgClb is not None:            
-            self._msgClb(MqtMsgEvent( msg.topic, msg.payload))
+            self._msgClb(imMqttInterface.MqtMsgEvent( msg.topic, msg.payload))
         else:
             self._log.error("No handler is defined")
     
@@ -154,13 +151,13 @@ class MqtDevice():
     def _online(self):
         self._log.info("Received Hello, Online")
         self.gprs_on_ntimes += 1
-        self.online_session = myTime.getTimestamp()
+        self.online_session = imUtils.myTime.getTimestamp()
         
     def _offline(self):
         #HAS TO BE REPLACED BY AN EV INTERFACE (for grphics)
         #timevents is not logged!
         self._log.info("Receved Bye, Offline")
-        minutes_session = myTime.getDiffNowMin( self.online_session  )
+        minutes_session = imUtils.myTime.getDiffNowMin( self.online_session  )
         self.online_total += minutes_session
        
         self._log.info( "Total minutes Session Connection=" + str(minutes_session) )
@@ -178,7 +175,7 @@ class MqtDevice():
         self.mqttEvents.register(self.iccid, self.msgClb)
         
 
-class MyMqttEvents(Parseble):
+class MyMqttEvents(imUtils.Parseble):
     """
     Implementation of the CallBack Template 
     Real Action has to be implemented here!
@@ -236,7 +233,7 @@ class Devices():
 class Factory():
     
     def __init__(self):
-        self.ev = MqttEvents()
+        self.ev = imMqttInterface.MqttEvents()
         self.mAd = MosqAdapter(MqttServer1(), self.ev.callAllFunc)
         self.mAd.open()
         

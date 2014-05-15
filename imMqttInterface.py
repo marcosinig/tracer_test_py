@@ -15,7 +15,9 @@ class MqtMsgEvent():
         self.topic = topic
         self.payload = payload
         self.iccid = self._parseTopic()
-        
+    
+    def generate_ack_topic(self):
+        return "C/89372021131217026454/981593f3-ec6a-407d-b820-b4d9e9259ae0"
     
     def _parseTopic(self):
         splitted_txt = self.topic.split("/")
@@ -90,17 +92,25 @@ class MqttMsgSetting(MqtMsgEvent):
         #TODO
         pass
 
-class MqttMsgLocateNow(MqtMsgEvent):
-     #TODO
-    pass
+class MqttMsgLocateNow(MqtMsgEvent):    
+#LN;C/89372021131217026454/981593f3-ec6a-407d-b820-b4d9e9259ae0
+    
+        pass
+    
 
 class MqttMsgContinuosTracking(MqtMsgEvent):
-     #TODO
+#CT=300;C/89372021131217026454/85cc1b4b-5ef2-4562-a264-61f5580b46bd
     pass
 
 class MqttMsgNewFirmware(MqtMsgEvent):
-     #TODO
-    pass
+#NF=1405082231;C/89372021131217026454/041ac9d1-a907-413d-9007-f40c8157a1    
+    def build_msg(self,build_fw):
+        self.build_fw = build_fw
+        self.ack_topic = self.generate_ack_topic()
+    
+    def __str__(self):
+        return "NF=" + self.build_fw + ";" + self.ack_topic
+        
 
 
 class MqttMsgGoodBye(MqtMsgEvent):
@@ -110,30 +120,7 @@ class MqttMsgGoodBye(MqtMsgEvent):
     def parse(self,str):
         self.event="mqttGoodbye"
         
-  
-class MqttMsgEvents():
-    """
-    OBSOLOTE TO REMOVE
-    """   
-    __log=1
-     
-    def _hello(self, mqtMsgEvent):
-       if self.__class__.__log :
-            print(self.__class__.__name__ + " Log: " + function_name())
-       mqtMsgEvent.__class__= MqttMsgHello
-       mqtMsgEvent.parse()
-       
-    def _goodbye(self, mqtMsgEvent):
-        if self.__class__.__log :
-            print(self.__class__.__name__ + " Log: " + function_name()) 
-    
-    def msgClb(self, msg):
-        #entry point per parsare un messaggio
-        if "HELLO" in msg.payload :
-            self._hello(msg)
-        if "GOODBYE WILL" in msg.payload:
-            self._goodbye(msg)
-            
+
             
 class MqttEvents(Observable, Parseble):
     """
@@ -153,11 +140,15 @@ class MqttEvents(Observable, Parseble):
            mqtMsgEvent.__class__= MqttMsgHello
            mqtMsgEvent.parse()
            self.fire_action(mqtMsgEvent)
+           return True
+        return False
+           
        
     def goodbye(self, mqtMsgEvent):
         if "GOODBYE WILL" in mqtMsgEvent.payload:
             if self.__class__.__log :
                 print(self.__class__.__name__ + " Log: " + function_name())             
-            
+            return True
+        return False    
             
 
