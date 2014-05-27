@@ -175,7 +175,7 @@ class Uart(threading.Thread, Observable):
             raise Exception("Error on opening port "+ self._uart_port);
      
     def stop(self):
-        self._log.debug("Called Stop ")
+        self._log.error("Called Stop ")
         self._stop.set()       
         if self._serial_obj != None:
             self._serial_obj.close()

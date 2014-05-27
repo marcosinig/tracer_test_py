@@ -54,8 +54,6 @@ class RegHandlerConn(imUtils.Parseble):
         self._log.debug( str(evt) )
         self._clb(evt)
     
-            
-
 class MngListProfEv():
     
     class ProfEv(object):
@@ -193,14 +191,45 @@ class AtStuck_state(imStateMachine.StateFath):
 class FwStuck_state(imStateMachine.StateFath):
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
-                
 
+
+class Init_state(imStateMachine.StateFath):
+    
+    def __init__(self, obs, stateM, shellCmd):
+        super(self.__class__, self).__init__(obs)
+        self.stateM = stateM
+        self.shellCmd = shellCmd
+        
+        self.startState = True
+        self.timer = threading.Timer(5, self.clbNoEvents)                
+    
+    def clbNoEvents(self):
+        self._log.debug("No Events received, go to off state!")
+        
+        self.shellCmd.fw_TraceOn()
+        self.shellCmd.fw_AtFlowOn()
+        
+        self.stateM.change_state("Off_state", imFwInterface.EventMsg("auto generated event", "auto generated event"))
+        self.shellCmd.fw_simBtns()        
+    
+    def enterState(self, event):
+        self._log.debug(function_name())
+        
+        self._log.info("Started waiting for events..")
+        self.timer.start()
+        
+    def processEv(self, event):
+        self._log.debug(function_name())
+        
+        self._log.info("Event received! Device is not in Off state, Blocked here!")
+        self.timer.cancel()
+        
 
 class Off_state(imStateMachine.StateFath):
     
     def __init__(self, obs):
         super(self.__class__, self).__init__(obs)
-        self.startState = True
+        #self.startState = True
     
     def enterState(self, event):
         self._log.info(function_name())
@@ -484,6 +513,7 @@ class Check_Tracer_Status():
         self.fw_commands = 0
         self.sm = stateMachine
 
+
         self.timer = threading.Timer(Check_Tracer_Status.timeout_fw_stuck, self.no_activity_handler)        
     
     def no_activity_handler(self):
@@ -524,6 +554,7 @@ def startDevStateProf(imSys):
     imSys._events.msubscribe(evHand.defCallBck)
     #imSys._events.msubscribe(evHand.callMatchFuncName)
 
+    imSys.stateM.add_state(Init_state(connProf, imSys.stateM, imSys.shellCmd))
     
     imSys.stateM.add_state(AtStuck_state(connProf))
     imSys.stateM.add_state(FwStuck_state(connProf))

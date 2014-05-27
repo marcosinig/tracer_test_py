@@ -17,7 +17,7 @@ class MqtMsgEvent():
         self.iccid = self._parseTopic()
     
     def generate_ack_topic(self):
-        return "C/89372021131217026454/981593f3-ec6a-407d-b820-b4d9e9259ae0"
+        self.ack =  "981593f3-ec6a-407d-b820-b4d9e9259ae0"
     
     def _parseTopic(self):
         splitted_txt = self.topic.split("/")
@@ -92,10 +92,16 @@ class MqttMsgSetting(MqtMsgEvent):
         #TODO
         pass
 
-class MqttMsgLocateNow(MqtMsgEvent):    
-#LN;C/89372021131217026454/981593f3-ec6a-407d-b820-b4d9e9259ae0
+class MqttMsgLocateNow():    
+#LN;C/89372021131217026454/981593f3-ec6a-407d-b820-b4d9e9259ae0        
+            
+    def getTopic(self, iccid):
+        return "C/" + iccid
     
-        pass
+    def getPayload(self, iccid):
+        #self.generate_ack_topic()
+        ack = "981593f3-ec6a-407d-b820-b4d9e9259ae0"
+        return "LN;C/" + iccid + "/"+ ack
     
 
 class MqttMsgContinuosTracking(MqtMsgEvent):

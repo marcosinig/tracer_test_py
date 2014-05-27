@@ -36,7 +36,7 @@ def startUartLog():
     
     imSys.start()
     
-    imSys.close()
+    #imSys.close()
    
     #sessMng.stMachine.printDevStateProf()
             

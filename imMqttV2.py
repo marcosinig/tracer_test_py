@@ -15,15 +15,12 @@ TODO:
 '''
 
 import mosquitto
-import os , sys, threading
-#import time
+import os , sys, threading, logging
+import time
 import imMqttInterface, imUtils 
 
-#SHOULD NOT BE USED
-#HAS TO BE INVESTIGATED
+logger = logging.getLogger( __name__)        
 
-#_log = logging.getLogger(__name__)        
-#configureLog(_log)
         
 class MqttServer1():
     def __init__(self):
@@ -37,16 +34,19 @@ class MqttServerTest():
         self.port=8883
         self.tls=0
 
+
+
 class MosqAdapter(threading.Thread, imUtils.Observable): 
     __log=1
     __debugMqtt=0
     __username="imcloud"
     __password="hg3686g9FWn102a"
  
-    def __init__(self, mosServer, callback=None):
+    def __init__(self, mosServer, callback=None, clientid=None):
         super(self.__class__, self).__init__()
         self._mosServer = mosServer
         self._msgClb=callback
+        self.clientid = clientid
         self._log = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
  
@@ -75,7 +75,11 @@ class MosqAdapter(threading.Thread, imUtils.Observable):
     
     def open(self):
         self._log.debug("Starting Mosquito adapter..")
-        self._mqttc = mosquitto.Mosquitto("MARCO-TEST")
+        if self.clientid != None :
+            self._mqttc = mosquitto.Mosquitto(self.clientid)
+        else :
+            self._mqttc = mosquitto.Mosquitto("MARCO-TEST")
+            
         self._mqttc.on_message = self.on_message
         self._mqttc.on_connect = self.on_connect
         self._mqttc.on_publish = self.on_publish
@@ -101,6 +105,11 @@ class MosqAdapter(threading.Thread, imUtils.Observable):
     
     def run(self):
         self._mqttc.loop_forever()
+    
+    def publish(self, topic, payload):
+        print topic 
+        print payload
+        self._mqttc.publish(topic, payload)
        
     def subscribe(self, topic, callBack):
         #return code shoudl be kept and used againts the callbck
@@ -162,9 +171,12 @@ class MqtDevice():
        
         self._log.info( "Total minutes Session Connection=" + str(minutes_session) )
         self._log.info( "Total Overall Connection=" + str(self.online_total) )
-        
+    
+    def publishMsg(self, msg):        
+        self.mosAdapter.publish(msg.getTopic(self.iccid), msg.getPayload(self.iccid))                        
         
     def msgClb(self, msg):
+        #not tested, is really usefull?
         if msg.__class__.__name__ == "MqttMsgHello":
             self._online()
         elif msg.__class__.__name__ == "MqttMsgGoodBye":
@@ -180,6 +192,7 @@ class MyMqttEvents(imUtils.Parseble):
     Implementation of the CallBack Template 
     Real Action has to be implemented here!
     """  
+    #not tested, is really usefull?
     
     def __init__(self):
         super(self.__class__, self).__init__()
@@ -204,6 +217,7 @@ class MyMqttEvents(imUtils.Parseble):
     
     
 class Devices():
+    #not tested
         def __init__(self, mqttEvents):
             self.devices = []
             self.mqttEvents = mqttEvents
@@ -249,10 +263,38 @@ class Factory():
     
     def test1DelDev(self,):
         pass
-        
+
+
+def testMosAdater():     
+    logger.info("Testing connecion testMosAdater ")
+    myClientid = "89372021131217025480"
+    mAd = MosqAdapter(MqttServer1(), clientid = myClientid)
+    mAd.open()
+
+def sendLN():
+    iccid = "89372021131217025480"
+    mAd = MosqAdapter(MqttServer1())
+    mAd.open()
     
-#if __name__ == "__main__":
-f = Factory()
-f.test1AddDev()
+    ev = imMqttInterface.MqttEvents()
+    
+    dev = MqtDevice(iccid, mAd, ev)
+    dev._subscribe()
+    
+    msg =  imMqttInterface.MqttMsgLocateNow()
+    dev.publishMsg(msg)
+    
+    time.sleep(2)
+    
+            
+    
+if __name__ == "__main__":
+    
+    sendLN()
+    
+    #testMosAdater()
+    
+    #f = Factory()
+    #f.test1AddDev()
         
     
