@@ -38,7 +38,7 @@ class FactUartSys(SessionManager):
         self._uart = imUtils.Uart(self.returnOsCom(uart_com))    
         self._events = imFwInterface.ShellEvents()
         self._log = imUtils.logging.getLogger(__name__ + "." + self.__class__.__name__)
-        self.shellCmd = imFwInterface.ShellCmd(self._uart)
+        self.shellCmd = imFwInterface.ShellCmd(self._uart, self._events)
                 
         self._uart.msubscribe(self.time.updTime)                
         self._uart.msubscribe(self.logFile.printConsole)

@@ -158,7 +158,11 @@ class Uart(threading.Thread, Observable):
         self._serial_obj=None                
         self._uart_port=port         
         self._stop = threading.Event() 
+        self.retstring = True
         
+    
+    def setRetString(self, onoff):
+        self.retstring = onoff
 
     def close(self):
           self._log.debug("Called del ")
@@ -168,7 +172,7 @@ class Uart(threading.Thread, Observable):
     
     def open_ser(self):
         try:
-            self._serial_obj = serial.Serial(self._uart_port , baudrate=115200)
+            self._serial_obj = serial.Serial(self._uart_port , baudrate=115200, timeout = 1)           
         except:
             self._log.error("Error on opening port "+ self._uart_port) 
             self.stop()            
@@ -195,15 +199,21 @@ class Uart(threading.Thread, Observable):
         while True:
             #if (self._serial_obj.inWaiting() > 0) :
             try:
-                ch = self._serial_obj.read()
+                if self.retstring:         
+                    ch = self._serial_obj.readline()
+                else:
+                    ch = self._serial_obj.read(100)              # read one, blocking                    
             except:
                 self._log.error("Error on reading on port "+ self._uart_port) 
                 self._serial_obj.close()
                 raise Exception("Error on reading port "+ self._uart_port);
-                    
-            rv += ch
-            if ch=='\n':
-                return rv
+
+            #if self.retstring:             
+            #    rv += ch
+            #    if ch=='\n':
+            #        return rv
+            #else:
+            return ch
     
     def run(self):
         while True:        

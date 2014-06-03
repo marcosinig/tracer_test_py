@@ -4,15 +4,14 @@ Created on 7 Apr 2014
 @author: marco
 '''
 
-import time,datetime
-import re
-import sys
-import threading 
+import time,datetime, re, sys, threading
+import array 
 
 from  imUtils import function_name
 import imUtils
 
-logger = imUtils.logging.getLogger("imSystem."+ __name__)        
+logger = imUtils.logging.getLogger("imSystem."+ __name__) 
+imUtils.configureLog(logger)
 
     
 class AtError(Exception):
@@ -29,18 +28,28 @@ class AtTimeout(AtError):
 class AtEvNotExpect(AtError):
     def __init__(self, value):
         AtError.__init__(self, value)
+class AtEvOk(AtError):
+    def __init__(self, value):
+        AtError.__init__(self, value)        
 
 class ShellCmd():
     
-    def __init__(self, uart):
+    def __init__(self, uart, events):
         self.__uart=uart
+       
+        self.__atPrefix = "gsm " 
+            
         self._log = imUtils.logging.getLogger("imSystem."+ __name__ + "."+ self.__class__.__name__)
+        self._events = events
         
         self.listEvExp = None
         self.eventWait = threading.Event()     
         self.timer = None
         self.evRecv = None
         self.waitTimError = None
+    
+    def setNoPrefix(self):
+        self.__atPrefix = "" 
     
     def parseEv(self, evRecv):
         self._log.debug("Parsing ev " + str(evRecv)) 
@@ -81,11 +90,13 @@ class ShellCmd():
         self.timer.start()
         self.eventWait.clear()
         self.eventWait.wait()
+        self.listEvExpError = self.listEvExp
+        self.listEvExp = None        
         self._log.debug("get Out from wait" + str (timeout))
         
         self.timer.join()
         if self.waitTimError != None :
-            raise AtTimeout(self.waitTimError + str(self.listEvExp))
+            raise AtTimeout(self.waitTimError + str(self.listEvExpError))                
 
 
     def testWaitEv(self):                
@@ -104,22 +115,40 @@ class ShellCmd():
         self.__uart.write("gpio 12 0")        
         self.waitEv(["evAtHostEEFiles"], 6.0)
         return  
-        
-        
+                
     def gsmCmee(self): 
         self._log.debug("gpsp")
         
-        self.__uart.write("gsm  AT+CMEE=2")                   
+        self.__uart.write(self.__atPrefix + "AT+CMEE=2")                   
         self.waitEv(["evAtOk"], 2.0)
         return
 
     def gsmAtReboot(self):
-        self.__uart.write("gsm  at#reboot")        
+        self.__uart.write(self.__atPrefix + "at#reboot")        
         self.waitEv(["evAtOk"], 2.0)
-        self.waitEv(["evAtHostEEFiles"], 6.0)        
-  
+        self.waitEv(["evAtHostEEFiles"], 20.0)          
         return  
     
+    def gsmAyHttpConfig(self, server):
+        self.__uart.write(self.__atPrefix + "AT#HTTPCFG=0,\"" + server  + "\"") 
+        self.waitEv(["evAtOk"], 2.0)
+        
+    def gsmAtHttpQuery(self, address):                
+        self.__uart.write(self.__atPrefix + "AT#HTTPQRY=0,0,\"" + address + "\"")
+        self.waitEv(["evAtOk"], 40.0)
+        
+        self.waitEv(["evAtHttpRing"], 900.0)
+                
+        self._log.debug("Size file " + self.evRecv.str1) 
+        return int( self.evRecv.str1 )
+    
+    def gsmAtHttpRcv(self, size_data):        
+        self.__uart.write(self.__atPrefix + "AT#HTTPRCV=0")
+        #self.waitEv(["evAtEchoHTTPRCV"], 30.0)
+        self.__uart.setRetString(False)        
+        self._events.http_ex_lenght = size_data
+        self.waitEv(["evAtOk"], 3000.0)
+        
     def gsmGpioReboot(self):            
         self.__uart.write("gpio 15 1")
         time.sleep(1)
@@ -137,31 +166,38 @@ class ShellCmd():
             return True
         else: 
             return False
-
+    
     def gsmAtQss2(self): 
         self._log.debug("gpsp")
         
-        self.__uart.write("gsm  AT#QSS=2")               
-        self.waitEv(["evAtOk"], 2.0)
+        self.__uart.write(self.__atPrefix + "AT#SIMDET=1")
+        self.waitEv(["evAtOk"], 8.0)
+        
+        self.__uart.write(self.__atPrefix + "AT+CSIM=0")
+        self.waitEv(["evAtOk"], 8.0)
+        
+        self.__uart.write(self.__atPrefix + "AT#QSS=2")               
+        self.waitEv(["evAtOk"], 8.0)
         return
 
     def gsmAtQssWait(self): 
-        self._log.debug("gsmAtQssWait")
+        self._log.debug("gsmAtQssWait")    
         
-        self.__uart.write("gsm  AT#QSS?")               
-        self.waitEv(["evAtQss"], 2.0)
-        while True:   
-            if self.evRecv.str1 != "3" :
-                time.sleep(1)
-            else:            
-                break                        
+        while (True):
+            self.__uart.write(self.__atPrefix + "AT#QSS?")               
+            self.waitEv(["evAtQss"], 5.0)     
+            self._log.debug("Qss replied with " + self.evRecv.str1 + str(self.evRecv))          
+            if "3" in self.evRecv.str1:
+                break                 
+            else:
+                time.sleep(1)                                                          
         return
    
                 
     def gpsp(self, state): 
         self._log.debug("gpsp")
         
-        self.__uart.write("gsm AT$GPSP=" + str(state))               
+        self.__uart.write(self.__atPrefix + "AT$GPSP=" + str(state))               
         self.waitEv(["evAtOk"], 2.0)
         return
     
@@ -169,19 +205,27 @@ class ShellCmd():
         self._log.debug("gpsp")        
         
         while( True ):
-            self.__uart.write("gsm AT#SGACT=1,1,"",""")                   
-            self.waitEv(["evAtSgactAns", "evAtCmeError"], 4.0)
+            self.__uart.write(self.__atPrefix + "AT#SGACT=1,1,\"\",\"\"")                   
+            self.waitEv(["evAtSgactAns", "evAtCmeError"], 40.0)
             if self.evRecv.event == "evAtCmeError" and "context already activated" in self.evRecv.str1 :
                 break
             if self.evRecv.event == "evAtCmeError" :
                 time.sleep(1)
             elif self.evRecv.event == "evAtSgactAns":
                 break
-        return    
+        return 
+       
+    def gsmSgActOff(self): 
+        self._log.debug("gpsp")        
+    
+        self.__uart.write(self.__atPrefix + "AT#SGACT=1,0")                   
+        self.waitEv(["evAtOk"], 3.0)            
+        return 
+    
     
     def gsmSetClk(self):
         self._log.debug("gsmClk")                    
-        self.__uart.write("gsm AT+CCLK=\"" + datetime.datetime.now().strftime("%y/%m/%d,%H:%M:%S+00")  + "\"" )               
+        self.__uart.write(self.__atPrefix + "AT+CCLK=\"" + datetime.datetime.now().strftime("%y/%m/%d,%H:%M:%S+00")  + "\"" )               
         self.waitEv(["evAtOk"], 3.0)    
         return
             
@@ -189,7 +233,7 @@ class ShellCmd():
     def gpsAcp(self): 
         self._log.debug("gpsAcp")
         
-        self.__uart.write("gsm AT$GPSACP")               
+        self.__uart.write(self.__atPrefix + "AT$GPSACP")               
         self.waitEv(["evAtGpsacp"], 2.0)
         if self.evRecv.str1 == "" :
             #TODO HOW TO MANAGE IT ???
@@ -200,7 +244,7 @@ class ShellCmd():
     def gpsM2mLocate(self):
         self._log.debug("gpsM2mLocate")
         
-        self.__uart.write("gsm AT#AGPSSND")               
+        self.__uart.write(self.__atPrefix + "AT#AGPSSND")               
         self.waitEv(["evAtAgpsRing", "evAtCmeError"], 100.0)
         
         if self.evRecv.event== "evAtCmeError" and (" Can not resolve name" in self.evRecv.line  or " operation not supported" in self.evRecv.line ):
@@ -214,7 +258,7 @@ class ShellCmd():
             
     def gpsInit(self):
         self._log.debug("gpsInit ")                
-        self.__uart.write("gsm AT$GPSINIT")       
+        self.__uart.write(self.__atPrefix + "AT$GPSINIT")       
         self.setWaitEv(["evAtOk"])        
         self.waitEv(1.0)        
         return     
@@ -304,7 +348,7 @@ class EventMsg():
         return False
         
     def __str__(self):        
-        return "Event= " + self.event + " line= " + self.line + " str = " +self.str1 
+        return "Event= " + self.event + " line= " + self.line + " str = " + self.str1 
      
 
 class AutoEvents():
@@ -321,8 +365,27 @@ class AutoEvents():
 class ShellEvents(imUtils.Observable, imUtils.Parseble):
     
     def __init__(self):
-        super(self.__class__, self).__init__()
-
+        super(self.__class__, self).__init__()        
+        #self.http_buf = array.array('c')
+        #self.http_buf = ""
+        self.http_ex_lenght = 0    
+        
+    def httpBuffer(self, byte):
+        if self.http_ex_lenght <= 0 :
+            return False                                                   
+        
+        self.http_ex_lenght -= len(byte)
+        
+        print ("recevied " + str(len(byte)) + " left " + str(self.http_ex_lenght) )
+        
+        if "OK" in byte:
+            self.__uart.setRetString(False)
+            #raise AtEvOk(self.http_ex_lenght)            
+            self.http_ex_lenght = 0            
+            self.fire_action(EventMsg("OK", "evAtOk"))
+            
+        return True
+        
     def evFwGpio(self, str):
         if "gpio" in str:
             splitted_txt = str.split( )
@@ -336,6 +399,19 @@ class ShellEvents(imUtils.Observable, imUtils.Parseble):
             self.fire_action(EventMsg(str, function_name()))      
             return True
         return False 
+    
+    def evAtHttpRing(self, str):
+        pat = "(\#HTTPRING:)(.*),(.*),(.*),(.*)"
+        matchObj = (re.match( pat, str, re.M)) 
+        if matchObj: 
+            #list = []
+            #list.append(matchObj.group(2))
+            #list.append(matchObj.group(3))
+            #list.append(matchObj.group(4))
+            #list.append(matchObj.group(5))
+            self.fire_action(EventMsg(str, function_name(), matchObj.group(5)))      
+            return True
+        return False
                     
     def evAtCmeError(self, str):
         pat = "(\+CME ERROR:) (.*)"
@@ -344,6 +420,13 @@ class ShellEvents(imUtils.Observable, imUtils.Parseble):
             self.fire_action(EventMsg(str, function_name(), matchObj.group(2)))      
             return True
         return False
+    
+    def evAtEchoHTTPRCV(self, str):
+        if "HTTPRCV=0:" in str:           
+            self.fire_action(EventMsg(str, function_name()))      
+            return True
+        return False
+    
     
     #TODO: It has to be parsed with CME since it matches with CME ERROR
     def evAtError(self, str):
@@ -524,7 +607,6 @@ class ShellEvents(imUtils.Observable, imUtils.Parseble):
             self.fire_action(EventMsg(str, function_name()))
             return True
         return False            
-
                                 
     def evFwSysUserOn(self, str):
         if "SYS user on" in str:
@@ -542,8 +624,7 @@ class ShellEvents(imUtils.Observable, imUtils.Parseble):
         if "System NOT online" in str:
             self.fire_action(EventMsg(str, function_name()))
             return True
-        return False
-    
+        return False    
     
     def evAtGetIccid(self, str):
         if "#CCID" in str:

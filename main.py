@@ -25,6 +25,8 @@ import os, logging
 
 uart_list = { "UART_WIN" : "COM3", "UART_MAC" : "/dev/cu.usbmodemimTrace1", "UART_LINUX" : "/dev/ttyACM0" }
 
+
+
 def startUartLog():
     #just switch on the device and log all the errors 
     global imSys        
