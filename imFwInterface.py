@@ -109,7 +109,9 @@ class ShellCmd():
     #TODO: the stuff above should be moved outside 
     ############# 
         
-    def switchOnGsm(self):                
+    def switchOnGsm(self):            
+        self._log.debug(function_name())
+            
         self.__uart.write("gpio 12 1")
         time.sleep(1)
         self.__uart.write("gpio 12 0")        
@@ -117,23 +119,29 @@ class ShellCmd():
         return  
                 
     def gsmCmee(self): 
-        self._log.debug("gpsp")
+        self._log.debug(function_name())
         
         self.__uart.write(self.__atPrefix + "AT+CMEE=2")                   
         self.waitEv(["evAtOk"], 2.0)
         return
 
     def gsmAtReboot(self):
+        self._log.debug(function_name())
+        
         self.__uart.write(self.__atPrefix + "at#reboot")        
         self.waitEv(["evAtOk"], 2.0)
         self.waitEv(["evAtHostEEFiles"], 20.0)          
         return  
     
     def gsmAyHttpConfig(self, server):
+        self._log.debug(function_name())
+        
         self.__uart.write(self.__atPrefix + "AT#HTTPCFG=0,\"" + server  + "\"") 
         self.waitEv(["evAtOk"], 2.0)
         
-    def gsmAtHttpQuery(self, address):                
+    def gsmAtHttpQuery(self, address): 
+        self._log.debug(function_name())
+                       
         self.__uart.write(self.__atPrefix + "AT#HTTPQRY=0,0,\"" + address + "\"")
         self.waitEv(["evAtOk"], 40.0)
         
@@ -149,7 +157,9 @@ class ShellCmd():
         self._events.http_ex_lenght = size_data
         self.waitEv(["evAtOk"], 3000.0)
         
-    def gsmGpioReboot(self):            
+    def gsmGpioReboot(self):     
+        self._log.debug(function_name())
+               
         self.__uart.write("gpio 15 1")
         time.sleep(1)
         self.__uart.write("gpio 15 0")
@@ -158,7 +168,7 @@ class ShellCmd():
         return  
     
     def isGsmOn(self):
-        self._log.debug("isGsmOn")
+        self._log.debug(function_name())
         
         self.__uart.write("gpio 2")        
         self.waitEv(["evFwGpio"], 1.0)        
@@ -168,7 +178,7 @@ class ShellCmd():
             return False
     
     def gsmAtQss2(self): 
-        self._log.debug("gpsp")
+        self._log.debug(function_name())
         
         self.__uart.write(self.__atPrefix + "AT#SIMDET=1")
         self.waitEv(["evAtOk"], 8.0)
@@ -181,7 +191,7 @@ class ShellCmd():
         return
 
     def gsmAtQssWait(self): 
-        self._log.debug("gsmAtQssWait")    
+        self._log.debug(function_name())   
         
         while (True):
             self.__uart.write(self.__atPrefix + "AT#QSS?")               
@@ -195,14 +205,38 @@ class ShellCmd():
    
                 
     def gpsp(self, state): 
-        self._log.debug("gpsp")
+        self._log.debug(function_name())
         
         self.__uart.write(self.__atPrefix + "AT$GPSP=" + str(state))               
         self.waitEv(["evAtOk"], 2.0)
         return
     
+    def gsmEnableSocket(self):
+        self._log.debug(function_name())
+        
+        self.__uart.write(self.__atPrefix + "AT#SSLH=1,0") 
+        self.waitEv(["evAtOk"], 3.0)
+        
+        self.__uart.write(self.__atPrefix + "AT#SSLD=1,8883,54.204.45.154,1,1") 
+        self.waitEv(["evAtOk"], 3.0)
+        
+        self.__uart.write(self.__atPrefix + "AT#SSLS=1")        
+
+        time.sleep(2)
+        
+        self.__uart.write(self.__atPrefix + "AT#SSLH=1,1") 
+        self.waitEv(["evAtOk"], 3.0)        
+                
+        
+        self.__uart.write(self.__atPrefix + "AT#SSLFASTD=1,1") 
+        self.waitEv(["evAtOk"], 3.0)
+        
+        self.__uart.write(self.__atPrefix + "AT#SSLS=1")        
+
+        
+    
     def gsmSgActOn(self): 
-        self._log.debug("gpsp")        
+        self._log.debug(function_name())
         
         while( True ):
             self.__uart.write(self.__atPrefix + "AT#SGACT=1,1,\"\",\"\"")                   
@@ -216,7 +250,7 @@ class ShellCmd():
         return 
        
     def gsmSgActOff(self): 
-        self._log.debug("gpsp")        
+        self._log.debug(function_name())
     
         self.__uart.write(self.__atPrefix + "AT#SGACT=1,0")                   
         self.waitEv(["evAtOk"], 3.0)            
@@ -224,14 +258,15 @@ class ShellCmd():
     
     
     def gsmSetClk(self):
-        self._log.debug("gsmClk")                    
+        self._log.debug(function_name())
+                    
         self.__uart.write(self.__atPrefix + "AT+CCLK=\"" + datetime.datetime.now().strftime("%y/%m/%d,%H:%M:%S+00")  + "\"" )               
         self.waitEv(["evAtOk"], 3.0)    
         return
             
 
     def gpsAcp(self): 
-        self._log.debug("gpsAcp")
+        self._log.debug(function_name())
         
         self.__uart.write(self.__atPrefix + "AT$GPSACP")               
         self.waitEv(["evAtGpsacp"], 2.0)
@@ -242,7 +277,7 @@ class ShellCmd():
         return     
     
     def gpsM2mLocate(self):
-        self._log.debug("gpsM2mLocate")
+        self._log.debug(function_name())
         
         self.__uart.write(self.__atPrefix + "AT#AGPSSND")               
         self.waitEv(["evAtAgpsRing", "evAtCmeError"], 100.0)
@@ -257,7 +292,8 @@ class ShellCmd():
         return 
             
     def gpsInit(self):
-        self._log.debug("gpsInit ")                
+        self._log.debug(function_name())
+                   
         self.__uart.write(self.__atPrefix + "AT$GPSINIT")       
         self.setWaitEv(["evAtOk"])        
         self.waitEv(1.0)        

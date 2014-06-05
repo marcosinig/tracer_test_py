@@ -175,12 +175,12 @@ class MqtDevice():
     def publishMsg(self, msg):        
         self.mosAdapter.publish(msg.getTopic(self.iccid), msg.getPayload(self.iccid))                        
         
-    def msgClb(self, msg):
+    #def msgClb(self, msg):
         #not tested, is really usefull?
-        if msg.__class__.__name__ == "MqttMsgHello":
-            self._online()
-        elif msg.__class__.__name__ == "MqttMsgGoodBye":
-            self._offile()
+    #     if msg.__class__.__name__ == "MqttMsgHello":
+    #        self._online()
+    #    elif msg.__class__.__name__ == "MqttMsgGoodBye":
+    #        self._offile()
     
     def subscribe(self):
         self._subscribe()
